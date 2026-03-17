@@ -1,0 +1,70 @@
+{
+  "model_info": {
+    "name": "nas_optimized_wireless_classifier_fast",
+    "parameters": 3539,
+    "model_size_mb": 0.08903980255126953,
+    "input_shape": [
+      512,
+      2
+    ],
+    "classes": [
+      "LTE",
+      "DVB-T",
+      "WiFi"
+    ]
+  },
+  "training_history": {
+    "epochs": 21,
+    "final_accuracy": 0.9447619318962097,
+    "final_val_accuracy": 0.8766666650772095,
+    "final_loss": 0.1811276227235794,
+    "final_val_loss": 0.8766666650772095
+  },
+  "test_results": {
+    "overall_accuracy": 0.9006666666666666,
+    "confusion_matrix": [
+      [
+        464,
+        32,
+        4
+      ],
+      [
+        53,
+        433,
+        14
+      ],
+      [
+        3,
+        43,
+        454
+      ]
+    ],
+    "classification_report": {
+      "LTE": {
+        "precision": 0.8923076923076924,
+        "recall": 0.928,
+        "f1-score": 0.9098039215686274,
+        "support": 500.0
+      },
+      "DVB-T": {
+        "precision": 0.8523622047244095,
+        "recall": 0.866,
+        "f1-score": 0.8591269841269841,
+        "support": 500.0
+      },
+      "WiFi": {
+        "precision": 0.961864406779661,
+        "recall": 0.908,
+        "f1-score": 0.934156378600823,
+        "support": 500.0
+      }
+    }
+  },
+  "nas_search": {
+    "population_size": 16,
+    "generations": 10,
+    "best_fitness": 0.13439998626708985,
+    "best_parameters": 3539,
+    "search_space_size": 1327104
+  }
+}

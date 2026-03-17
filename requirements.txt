@@ -2,3 +2,4 @@ numpy
 tensorflow
 scikit-learn
 matplotlib
+tensorflow-model-optimization

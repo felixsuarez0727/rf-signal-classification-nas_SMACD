@@ -1,24 +1,24 @@
 # 📡 Wireless Signal Classification with Neural Architecture Search (NAS)
 
-A cutting-edge deep learning pipeline for classifying wireless signals (LTE, DVB-T, WiFi) using automated Neural Architecture Search. This project implements state-of-the-art NAS techniques to automatically discover optimal CNN-LSTM architectures while maintaining high classification accuracy (>95%).
+A deep learning pipeline for classifying wireless signals (LTE, DVB-T, WiFi) using automated Neural Architecture Search. The current project version is optimized for an aggressive edge-efficient operating point with very low parameter count.
 
 ---
 
 ## 🎯 Project Overview
 
-This project demonstrates advanced Neural Architecture Search (NAS) for wireless signal classification, achieving:
+This project demonstrates Neural Architecture Search (NAS) for wireless signal classification, currently achieving:
 - **Automated architecture discovery** using evolutionary algorithms
-- **>85% parameter reduction** (from ~42K to <5K parameters)
-- **>95% accuracy maintained** across all signal types
+- **Ultra-compact model** with only **3,539 parameters**
+- **90.1% test accuracy** on balanced OTA subsets
 - **<0.1 MB model size** for edge/IoT deployment
 - **Multi-objective optimization** balancing accuracy and efficiency
 
 ### Original vs NAS-Optimized Performance
 | Metric | Original Model | NAS-Optimized Model | Improvement |
 |--------|----------------|-------------------|-------------|
-| Parameters | ~42,019 | 13,491 | 68% reduction |
-| Accuracy | 97.96% | 93.8% | Maintained |
-| Model Size | ~0.55 MB | 0.22 MB | 60% reduction |
+| Parameters | ~42,019 | 3,539 | 91.6% reduction |
+| Accuracy | 97.96% | 90.1% | Compact trade-off |
+| Model Size | ~0.55 MB | ~0.09 MB | 83% reduction |
 | Discovery Method | Manual Design | Automated NAS | Revolutionary |
 | Search Space | Limited | 1.6M combinations | Comprehensive |
 
@@ -124,16 +124,25 @@ pip install -r requirements.txt
 
 ### 2. **Run NAS Fast Demo (Recommended)**
 ```bash
-# Execute optimized NAS demo with balanced results
-python nas_fast_demo.py
+# Execute updated high-accuracy NAS search (current best setup)
+python nas_fast_demo.py \
+  --population-size 16 \
+  --generations 10 \
+  --eval-epochs 8 \
+  --train-epochs 60 \
+  --train-samples-per-class 1400 \
+  --val-samples-per-class 500 \
+  --test-samples-per-class 500 \
+  --seed 42 \
+  --results-dir results_nas_highacc_v1
 ```
 
 This will:
-- Use balanced dataset sampling (1000 samples per class)
-- Run 5 generations with 8 architectures per generation
-- Find optimal CNN-LSTM architectures automatically
-- Generate comprehensive results in `results_nas/` directory
-- Complete in ~10 minutes with 93.8% accuracy
+- Use larger balanced dataset subsets (1400/500/500 per class)
+- Run 10 generations with 16 architectures per generation
+- Evaluate architectures with longer per-candidate training (`eval_epochs=8`)
+- Save outputs in `results_nas_highacc_v1/`
+- Reproduce the current compact model result (3,539 params, 90.1% test accuracy)
 
 ### 3. **Run Complete NAS Demo**
 ```bash
@@ -217,26 +226,26 @@ optimized_features = selector.fit_transform(reshaped_data, labels)
 ### NAS Search Statistics
 | Metric | Value |
 |--------|-------|
-| **Search Space Size** | 1,658,880 combinations |
-| **Architectures Evaluated** | 40 (5 generations × 8 population) |
-| **Search Time** | ~10 minutes |
-| **Parameter Reduction** | 68% (42,019 → 13,491) |
-| **Accuracy Achieved** | 93.8% |
+| **Search Space Size** | 1,327,104 combinations |
+| **Architectures Evaluated** | 160 (10 generations × 16 population) |
+| **Search Time** | ~30-90 minutes (CPU dependent) |
+| **Parameter Reduction** | 91.6% (42,019 → 3,539) |
+| **Accuracy Achieved** | 90.1% |
 
 ### Classification Accuracy by Signal Type
 | Signal Type | Original | NAS-Optimized | Change |
 |-------------|----------|---------------|---------|
-| **LTE** | 99.12% | 91.2% | Excellent |
-| **DVB-T** | 96.88% | 96.7% | Maintained |
-| **WiFi** | 97.73% | 93.5% | Excellent |
-| **Overall** | 97.96% | 93.8% | Excellent |
+| **LTE** | -- | 92.8% recall | Strong |
+| **DVB-T** | -- | 86.6% recall | Moderate |
+| **WiFi** | -- | 90.8% recall | Strong |
+| **Overall** | -- | 90.1% | Compact trade-off |
 
 ### Optimization Metrics
-- **Parameter Reduction**: 68% reduction achieved (42,019 → 13,491)
-- **Model Size**: 0.22 MB (60% reduction from 0.55 MB)
-- **Inference Speed**: 3-5x improvement
-- **Memory Usage**: 70% reduction
-- **Power Consumption**: Estimated 60% reduction
+- **Parameter Reduction**: 91.6% reduction (42,019 → 3,539)
+- **Model Size**: ~0.09 MB serialized model (`nas_results_highacc_v1`)
+- **Weight Memory (FP32)**: ~13.8 KB (INT8 ~3.5 KB)
+- **Search Objective**: Accuracy-first with soft parameter penalty
+- **Deployment Target**: Core ML package for iOS app integration
 
 ### Deployment Readiness
 - ✅ **Edge Devices**: Ultra-light model suitable for IoT
@@ -431,22 +440,27 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-## 🎉 **Latest Update: NAS Implementation Success**
+## 🎉 Latest Update (Current Baseline)
 
-**Successfully implemented Neural Architecture Search (NAS) for wireless signal classification!**
+Current verified baseline from `results_nas_highacc_v1`:
 
-### **Key Achievements:**
-- ✅ **93.8% accuracy** achieved with only 13,491 parameters (68% reduction)
-- ✅ **Balanced classification** across all signal types (LTE: 91.2%, DVB-T: 96.7%, WiFi: 93.5%)
-- ✅ **Fast search**: Complete NAS optimization in ~10 minutes
-- ✅ **Comprehensive results**: All outputs saved in `results_nas/` directory
-- ✅ **Production ready**: 0.22 MB model suitable for edge deployment
+- ✅ **90.1% test accuracy** with **3,539 parameters**
+- ✅ **91.6% parameter reduction** vs ~42K manual model baseline
+- ✅ **160 architectures evaluated** (16 population × 10 generations)
+- ✅ **Updated article + app metadata** aligned with latest metrics
+- ✅ **Core ML conversion workflow fixed** for the current Keras/TensorFlow stack
 
-### **What's New:**
-- **Optimized search space**: 1.6M combinations with intelligent constraints
-- **Improved fitness function**: Quadratic accuracy penalty + smart parameter targeting
-- **Balanced dataset sampling**: Prevents class bias issues
-- **Enhanced training**: Early stopping + learning rate decay + regularization
-- **Complete automation**: From architecture search to final model deployment
+Recommended command:
 
-**Run `python nas_fast_demo.py` to see NAS in action!** 🚀
+```bash
+python nas_fast_demo.py \
+  --population-size 16 \
+  --generations 10 \
+  --eval-epochs 8 \
+  --train-epochs 60 \
+  --train-samples-per-class 1400 \
+  --val-samples-per-class 500 \
+  --test-samples-per-class 500 \
+  --seed 42 \
+  --results-dir results_nas_highacc_v1
+```

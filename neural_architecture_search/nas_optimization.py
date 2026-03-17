@@ -42,7 +42,8 @@ class WirelessSignalNAS:
     """
     
     def __init__(self, input_shape: Tuple, num_classes: int = 3, 
-                 population_size: int = 20, generations: int = 10):
+                 population_size: int = 20, generations: int = 10,
+                 eval_epochs: int = 5):
         """
         Initialize NAS for wireless signal classification
         
@@ -56,6 +57,7 @@ class WirelessSignalNAS:
         self.num_classes = num_classes
         self.population_size = population_size
         self.generations = generations
+        self.eval_epochs = eval_epochs
         
         # Architecture search space
         self.search_space = self._define_search_space()
@@ -70,44 +72,56 @@ class WirelessSignalNAS:
         print(f"   Input shape: {input_shape}")
         print(f"   Population size: {population_size}")
         print(f"   Generations: {generations}")
+        print(f"   Eval epochs/arch: {eval_epochs}")
         print(f"   Search space size: {self._calculate_search_space_size()}")
     
     def _define_search_space(self) -> Dict[str, List]:
         """
         Define the search space for wireless signal architectures
+        
+        This space is biased towards:
+        - Model sizes below ~8k–10k parameters
+        - Simple CNN + (opcional) una sola LSTM pequeña
+        - Uso frecuente de GlobalAveragePooling para reducir densas grandes
         """
         return {
-            # CNN Layer configurations - MORE EFFECTIVE
-            'conv_layers': [2, 3, 4],  # Remove single layer
-            'conv_filters': [[16, 32], [32, 64], [16, 32, 64], [32, 64, 128], [16, 32, 64, 128]],
-            'conv_kernels': [3, 5],  # Remove large kernels
-            'conv_activation': ['relu', 'elu'],  # Remove swish for stability
-            'conv_type': ['standard'],  # Focus on standard conv
+            # CNN Layer configurations (prefer fewer filters and layers)
+            'conv_layers': [1, 2, 3],
+            'conv_filters': [
+                [8, 16],
+                [16, 32],
+                [8, 16, 32],
+                [16, 32, 48]
+            ],
+            'conv_kernels': [3, 5],
+            'conv_activation': ['relu', 'elu'],
+            # Standard and separable convs (separable = más eficiente)
+            'conv_type': ['standard', 'separable'],
             
-            # Pooling configurations - BETTER POOLING
-            'pooling_type': ['max', 'average'],  # Remove global_avg initially
-            'pooling_size': [2, 3],  # Smaller pooling
+            # Pooling configurations (including global average pooling)
+            'pooling_type': ['max', 'average', 'global_avg'],
+            'pooling_size': [2, 3],
             
-            # LSTM configurations - MORE FOCUSED
-            'lstm_layers': [1, 2],  # Remove 0 layers
-            'lstm_units': [32, 64, 128],  # Remove very small units
-            'lstm_bidirectional': [True, False],
-            'lstm_dropout': [0.2, 0.3],  # Higher dropout
+            # LSTM configurations (opcional y pequeño)
+            'lstm_layers': [0, 1],
+            'lstm_units': [16, 32, 64],
+            'lstm_bidirectional': [False],
+            'lstm_dropout': [0.2, 0.3],
             
-            # Dense layer configurations - BETTER SIZES
-            'dense_layers': [1, 2],  # Remove 3 layers
-            'dense_units': [16, 32, 64],  # Remove very small units
+            # Dense layer configurations (compactas)
+            'dense_layers': [1, 2],
+            'dense_units': [16, 32],
             'dense_activation': ['relu', 'elu'],
-            'dense_dropout': [0.3, 0.4],  # Higher dropout
+            'dense_dropout': [0.3, 0.4],
             
-            # Regularization - STRONGER
-            'batch_norm': [True],  # Always use batch norm
-            'dropout_rate': [0.2, 0.3, 0.4],  # Higher dropout
+            # Regularization
+            'batch_norm': [True],
+            'dropout_rate': [0.2, 0.3, 0.4],
             
-            # Optimizer configurations - BETTER LEARNING RATES
-            'optimizer': ['adam'],  # Focus on adam
-            'learning_rate': [0.001, 0.0005],  # Remove very small LR
-            'batch_size': [32, 64]  # Remove small batch
+            # Optimizer configurations
+            'optimizer': ['adam'],
+            'learning_rate': [0.001, 0.0005],
+            'batch_size': [32, 64]
         }
     
     def _calculate_search_space_size(self) -> int:
@@ -211,6 +225,11 @@ class WirelessSignalNAS:
                 else:
                     model.add(LSTM(units, dropout=lstm_dropout, return_sequences=(i < lstm_layers-1)))
         
+        # If no LSTM is used and we still have temporal output,
+        # force a pooling step so Dense layers receive rank-2 tensors.
+        if lstm_layers == 0 and architecture.get('pooling_type') != 'global_avg':
+            model.add(GlobalAveragePooling1D())
+        
         # Dense layers
         dense_layers = architecture.get('dense_layers', 2)
         dense_units = architecture.get('dense_units', 16)
@@ -273,24 +292,32 @@ class WirelessSignalNAS:
                 verbose=0
             )
             
-            # Calculate fitness (IMPROVED multi-objective)
+            # Calculate fitness (multi-objective: accuracy + compactness)
             val_accuracy = max(history.history['val_accuracy'])
             param_count = model.count_params()
             
-            # IMPROVED fitness function
-            # Penalize low accuracy heavily
-            accuracy_penalty = (1 - val_accuracy) ** 2  # Quadratic penalty
+            # Accuracy term:
+            # stronger pressure to push validation accuracy upward.
+            accuracy_penalty = 1.2 * (1.0 - val_accuracy)
             
-            # Parameter penalty (target: <10k params)
-            if param_count <= 10000:
-                param_penalty = 0  # No penalty for small models
-            elif param_count <= 20000:
-                param_penalty = 0.1 * (param_count - 10000) / 10000
+            # Parameter penalty (objetivo: ~10k parámetros, pero permitiendo 6–12k sin castigo fuerte)
+            if param_count <= 6000:
+                # Muy pequeños: ligera bonificación implícita (penalización casi nula)
+                param_penalty = 0.0
+            elif param_count <= 10000:
+                # Zona cómoda 6k–10k → penalización muy suave (hasta 0.05)
+                param_penalty = 0.05 * (param_count - 6000) / 4000.0
+            elif param_count <= 16000:
+                # 10k–16k → penalización moderada adicional (hasta 0.20 total)
+                param_penalty = 0.05 + 0.15 * (param_count - 10000) / 6000.0
             else:
-                param_penalty = 0.1 + 0.2 * (param_count - 20000) / 30000
+                # >16k → penalización fuerte para desincentivar modelos grandes
+                over = min((param_count - 16000) / 8000.0, 1.0)
+                param_penalty = 0.20 + 0.80 * over
             
-            # Combined fitness (lower is better)
-            fitness = accuracy_penalty + param_penalty
+            # Combined fitness (lower is better):
+            # prioritize accuracy first, keep compactness as soft pressure.
+            fitness = accuracy_penalty + 0.25 * param_penalty
             
             return {
                 'fitness': fitness,
@@ -351,7 +378,9 @@ class WirelessSignalNAS:
         
         for i in range(self.population_size):
             architecture = self._generate_random_architecture()
-            fitness = self._evaluate_architecture(architecture, X_train, y_train, X_val, y_val)
+            fitness = self._evaluate_architecture(
+                architecture, X_train, y_train, X_val, y_val, max_epochs=self.eval_epochs
+            )
             architecture['fitness'] = fitness['fitness']
             architecture['metrics'] = fitness
             self.population.append(architecture)
@@ -402,8 +431,12 @@ class WirelessSignalNAS:
                 child2 = self._mutate(child2, mutation_rate=0.15)
                 
                 # Evaluate children
-                fitness1 = self._evaluate_architecture(child1, X_train, y_train, X_val, y_val)
-                fitness2 = self._evaluate_architecture(child2, X_train, y_train, X_val, y_val)
+                fitness1 = self._evaluate_architecture(
+                    child1, X_train, y_train, X_val, y_val, max_epochs=self.eval_epochs
+                )
+                fitness2 = self._evaluate_architecture(
+                    child2, X_train, y_train, X_val, y_val, max_epochs=self.eval_epochs
+                )
                 
                 child1['fitness'] = fitness1['fitness']
                 child1['metrics'] = fitness1

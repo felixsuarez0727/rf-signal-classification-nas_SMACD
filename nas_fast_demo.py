@@ -5,6 +5,8 @@ NAS Fast Demo - Optimized version for quick results
 import numpy as np
 import sys
 import os
+import random
+import argparse
 from pathlib import Path
 
 # Add parent directory to path
@@ -14,7 +16,17 @@ from neural_architecture_search.nas_optimization import WirelessSignalNAS
 from train import load_dataset, CLASSES
 
 
-def main():
+def set_global_seed(seed: int):
+    np.random.seed(seed)
+    random.seed(seed)
+    try:
+        import tensorflow as tf
+        tf.random.set_seed(seed)
+    except Exception:
+        pass
+
+
+def main(args):
     """
     Fast NAS demonstration with optimized settings
     """
@@ -22,6 +34,8 @@ def main():
     print("=" * 50)
     
     try:
+        set_global_seed(args.seed)
+
         # 1. Load SMALL subset of data
         print("📂 Loading SMALL dataset subset...")
         X_train, y_train = load_dataset(os.path.join("split_dataset", "train"), chunk_samples=1024)
@@ -50,10 +64,16 @@ def main():
             np.random.shuffle(indices)
             return X[indices], y[indices]
         
-        # Use MORE samples to prevent overfitting
-        X_train_subset, y_train_subset = get_balanced_subset(X_train, y_train_sparse, 1000)
-        X_val_subset, y_val_subset = get_balanced_subset(X_val, y_val_sparse, 400)
-        X_test_subset, y_test_subset = get_balanced_subset(X_test, y_test_sparse, 400)
+        # Use configurable balanced subsets
+        X_train_subset, y_train_subset = get_balanced_subset(
+            X_train, y_train_sparse, args.train_samples_per_class
+        )
+        X_val_subset, y_val_subset = get_balanced_subset(
+            X_val, y_val_sparse, args.val_samples_per_class
+        )
+        X_test_subset, y_test_subset = get_balanced_subset(
+            X_test, y_test_sparse, args.test_samples_per_class
+        )
         
         print(f"✅ Data loaded (BALANCED SUBSET):")
         print(f"   Train: {X_train_subset.shape}, Val: {X_val_subset.shape}, Test: {X_test_subset.shape}")
@@ -81,8 +101,9 @@ def main():
         nas = WirelessSignalNAS(
             input_shape=X_train_opt.shape[1:],
             num_classes=len(CLASSES),
-            population_size=8,    # Larger population for better search
-            generations=5         # More generations for evolution
+            population_size=args.population_size,
+            generations=args.generations,
+            eval_epochs=args.eval_epochs
         )
         
         # 4. Run FAST NAS search
@@ -105,7 +126,7 @@ def main():
         history = best_model.fit(
             X_train_opt, y_train_subset,
             validation_data=(X_val_opt, y_val_subset),
-            epochs=30,  # More epochs with early stopping
+            epochs=args.train_epochs,
             batch_size=32,  # Stable batch size
             callbacks=callbacks,
             verbose=1
@@ -134,7 +155,7 @@ def main():
         conf_matrix = confusion_matrix(y_test_subset, predicted_classes, labels=unique_labels)
         
         # 7. Create results directory
-        results_dir = "results_nas"
+        results_dir = args.results_dir
         os.makedirs(results_dir, exist_ok=True)
         print(f"\n📁 Creating results directory: {results_dir}/")
         
@@ -320,7 +341,19 @@ def main():
 
 
 if __name__ == "__main__":
-    success = main()
+    parser = argparse.ArgumentParser(description="Run NAS search and training with configurable settings.")
+    parser.add_argument("--population-size", type=int, default=8)
+    parser.add_argument("--generations", type=int, default=5)
+    parser.add_argument("--eval-epochs", type=int, default=5, help="Epochs per architecture during NAS search.")
+    parser.add_argument("--train-epochs", type=int, default=30, help="Epochs for final training.")
+    parser.add_argument("--train-samples-per-class", type=int, default=1000)
+    parser.add_argument("--val-samples-per-class", type=int, default=400)
+    parser.add_argument("--test-samples-per-class", type=int, default=400)
+    parser.add_argument("--results-dir", type=str, default="results_nas")
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
+
+    success = main(args)
     if success:
         print("\n🚀 NAS Fast Demo completed successfully!")
     else:

@@ -1,0 +1,51 @@
+=== NAS FAST DEMO RESULTS ===
+
+Model: NAS-Optimized Wireless Classifier (FAST VERSION)
+Date: 2026-03-16T17:05:05
+
+=== CONFIGURATION ===
+Input shape: (512, 2)
+Dataset subset: 500 samples per class
+Epochs: 10 (fast training)
+Batch size: 32
+Population size: 16
+Generations: 10
+
+=== TRAINING HISTORY ===
+Epoch 1: loss=0.9870, acc=0.5683, val_loss=1.4434, val_acc=0.3467
+Epoch 2: loss=0.6786, acc=0.7845, val_loss=1.5355, val_acc=0.4693
+Epoch 3: loss=0.5076, acc=0.8381, val_loss=0.9509, val_acc=0.6173
+Epoch 4: loss=0.4059, acc=0.8748, val_loss=0.8843, val_acc=0.6287
+Epoch 5: loss=0.3417, acc=0.9010, val_loss=0.7591, val_acc=0.7193
+Epoch 6: loss=0.3051, acc=0.9069, val_loss=0.6337, val_acc=0.7840
+Epoch 7: loss=0.2733, acc=0.9164, val_loss=0.5587, val_acc=0.8260
+Epoch 8: loss=0.2605, acc=0.9205, val_loss=0.4651, val_acc=0.8660
+Epoch 9: loss=0.2508, acc=0.9198, val_loss=0.4389, val_acc=0.8827
+Epoch 10: loss=0.2427, acc=0.9248, val_loss=0.4402, val_acc=0.8807
+Epoch 11: loss=0.2315, acc=0.9257, val_loss=0.4077, val_acc=0.8853
+Epoch 12: loss=0.2273, acc=0.9262, val_loss=0.3980, val_acc=0.8887
+Epoch 13: loss=0.2136, acc=0.9364, val_loss=0.3876, val_acc=0.8873
+Epoch 14: loss=0.2073, acc=0.9331, val_loss=0.3832, val_acc=0.8853
+Epoch 15: loss=0.1971, acc=0.9379, val_loss=0.4124, val_acc=0.8867
+Epoch 16: loss=0.2014, acc=0.9374, val_loss=0.3794, val_acc=0.8773
+Epoch 17: loss=0.1998, acc=0.9355, val_loss=0.4004, val_acc=0.8760
+Epoch 18: loss=0.1993, acc=0.9412, val_loss=0.4148, val_acc=0.8700
+Epoch 19: loss=0.1880, acc=0.9410, val_loss=0.4269, val_acc=0.8727
+Epoch 20: loss=0.1836, acc=0.9443, val_loss=0.4081, val_acc=0.8807
+Epoch 21: loss=0.1811, acc=0.9448, val_loss=0.4091, val_acc=0.8767
+
+=== FINAL RESULTS ===
+Overall Accuracy: 0.9007
+Parameters: 3,539
+Model Size: 0.09 MB
+
+=== METRICS PER CLASS ===
+LTE: Precision=0.892, Recall=0.928, F1=0.910
+DVB-T: Precision=0.852, Recall=0.866, F1=0.859
+WiFi: Precision=0.962, Recall=0.908, F1=0.934
+
+=== NAS SEARCH DETAILS ===
+Search space size: 1,327,104
+Architectures evaluated: 160
+Best fitness score: 0.1344
+Best architecture parameters: 3,539
