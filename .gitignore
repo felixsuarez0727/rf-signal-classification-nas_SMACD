@@ -16,3 +16,7 @@ __pycache__/
 # IDE
 .idea/
 .vscode/
+
+# Paper / dataset (keep out of GitHub)
+SMACD.tex
+split_dataset/
