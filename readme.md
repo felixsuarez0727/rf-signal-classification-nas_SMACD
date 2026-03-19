@@ -224,8 +224,9 @@ optimized_features = selector.fit_transform(reshaped_data, labels)
 6. **Evolution**: Repeat for multiple generations
 
 ### Phase 3: Multi-objective Optimization
-1. **Improved Fitness Function**: Quadratic accuracy penalty + parameter penalty
-2. **Smart Parameter Targeting**: <10k params (no penalty), 10k-20k (gradual penalty), >20k (heavy penalty)
+1. **Fitness Function**: Accuracy-first with soft parameter penalty  
+   (paper/code): `F = 1.2 * (1-A) + 0.25 * P_penalty`
+2. **Smart Parameter Targeting**: mild penalty up to ~10k parameters, stronger penalty beyond ~16k, encouraging compact models
 3. **Architecture Ranking**: Rank by combined fitness score (lower is better)
 
 ### Phase 4: Final Evaluation

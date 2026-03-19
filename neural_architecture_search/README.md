@@ -138,7 +138,7 @@ The fitness function balances multiple objectives:
 - **Size**: Minimize model size for deployment
 
 ```python
-fitness = (1 - accuracy) + 0.1 * (parameter_penalty)
+fitness = 1.2 * (1 - accuracy) + 0.25 * (parameter_penalty)
 ```
 
 ---
