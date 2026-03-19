@@ -32,36 +32,59 @@
 \hyphenation{
   Glo-bal-Ave-rage-Pool-ing
   Glo-bal-Avg-Pool-ing
-  core-ml-tools
-  ml-pro-gram
-  Swif-tUI
+  Swift-UI
   ca-te-go-ri-cal
   Wire-less
   Neu-ral
   ar-chi-tec-ture
   ar-chi-tec-tures
+  ar-chi-tec-tur-al
   clas-si-fi-ca-tion
+  clas-si-fi-er
   in-fer-ence
-  pre-pro-ces-sing
+  pre-pro-cess-ing
+  pre-pro-cessed
   de-ploy-ment
+  de-ploy-able
   pa-ra-me-ters
+  pa-ra-me-ter
   per-for-mance
   com-plex-i-ty
   evo-lu-tion-ary
   op-ti-mi-za-tion
   con-vo-lu-tion-al
+  con-vo-lu-tions
   re-cog-ni-tion
   com-mu-ni-ca-tion
   com-pu-ta-tion-al
   con-nec-tiv-i-ty
   pro-pa-ga-tion
   spec-trum
-  mo-bi-le
+  spec-tral
+  mo-bile
   ac-knowl-edged
   lim-i-ta-tions
   mi-cro-elec-tron-ics
   ac-cel-er-a-tor
+  ac-cel-er-a-tors
   quan-ti-za-tion
+  charac-ter-i-za-tion
+  char-ac-ter-is-tics
+  ad-dress-ing
+  elec-tro-mag-net-ic
+  meth-od-ol-o-gies
+  straight-for-ward
+  nor-mal-i-za-tion
+  reg-u-lar-i-za-tion
+  seg-men-ta-tion
+  si-mul-ta-ne-ous-ly
+  down-con-ver-sion
+  im-per-fec-tions
+  im-prac-ti-cal
+  pre-dict-able
+  gen-er-al-i-za-tion
+  trans-mis-sions
+  challen-ges
 }
 
 \begin{document}
@@ -79,11 +102,11 @@ Email: felix.suarez@imse-cnm.csic.es}
 \maketitle
 
 \begin{abstract}
-This paper presents an evolutionary Neural Architecture Search (NAS) methodology for hardware-efficient wireless signal classification on edge devices. The updated NAS configuration discovers an ultra-compact model with 3,539 parameters ($\sim$14~KB FP32) that classifies LTE, DVB-T, and WiFi signals with 90.1\% test accuracy on real-world over-the-air data. This corresponds to a 98.6\% parameter reduction versus a 250k-parameter traditional CNN baseline. We provide a complete system-level analysis from RF reception to edge inference and discuss the current accuracy-efficiency trade-off.
+This paper presents an evolutionary Neural Architecture Search (NAS) methodology for hardware-efficient wireless signal classification on edge devices. The updated NAS configuration discovered an ultra-compact model with 3,539 parameters that classifies LTE, DVB-T, and WiFi signals with 90.1\% test accuracy on real-world over-the-air data. The inference was implemented in an iOS application and tested on actual iPhone hardware.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Neural Architecture Search, Wireless Signal Classification, Edge Computing, Mobile Neural Engine, Hardware-Efficient Deep Learning, Core ML, FPGA, Embedded Systems, LTE, DVB-T, WiFi
+Neural Architecture Search, Wireless Signal Classification, Edge Computing, Hardware-Efficient Deep Learning, Core ML, Embedded Systems, LTE, DVB-T, WiFi
 \end{IEEEkeywords}
 
 % =========================================================
@@ -92,11 +115,13 @@ Neural Architecture Search, Wireless Signal Classification, Edge Computing, Mobi
 
 Automatic wireless signal classification has become essential for spectrum monitoring, cognitive radio networks, and interference detection \cite{oshea2017introduction}. The growing complexity of electromagnetic environments demands classification methodologies deployable on resource-constrained edge devices such as mobile SoCs, FPGAs, and ASICs \cite{gurbuz2022deep}. Traditional approaches relying on manual feature engineering face computational constraints on such platforms, while complex deep learning models exceed practical memory and power budgets.
 
-Neural Architecture Search (NAS) addresses these challenges by automatically discovering architectures tailored for target hardware \cite{zoph2016neural, real2019regularized}. This work presents the complete design flow from algorithm development to hardware deployment of an efficient wireless signal classifier on iOS, integrating NAS with Apple's Core ML framework \cite{coreml_guide}. Without loss of generality, we classify LTE, DVB-T, and WiFi using real-world over-the-air IQ signals from Fontaine and Shahid's dataset \cite{fontaine2023dataset, fontaine2019low, fontaine2023github}.
+Neural Architecture Search (NAS) addresses these challenges by automatically discovering architectures tailored for target hardware \cite{zoph2016neural, real2019regularized}. This work presents the complete design flow from algorithm development to hardware deployment of an efficient wireless signal classifier on edge devices, with a practical deployment example using Apple's Core~ML framework \cite{coreml_guide}. Without loss of generality, we classify LTE, DVB-T, and WiFi using real-world over-the-air IQ signals from Fontaine and Shahid's dataset \cite{fontaine2023dataset, fontaine2019low, fontaine2023github}.
 
-The achieved 98.6\% parameter reduction---from over 250,000 to 3,539---translates directly to reduced on-chip memory requirements (from $\sim$1.2~MB to only $\sim$14~KB in FP32), making external DRAM access unnecessary in many accelerator designs. The compact architecture facilitates straightforward hardware mapping with predictable memory access patterns on FPGAs and ASICs. Validation on real over-the-air measurements ensures robustness to practical imperfections including quantization effects and analog front-end non-idealities.
+The architecture \ref{fig:architecture} ,consisting of only two convolutional layers followed by global average pooling and a small dense head, facilitates straightforward hardware mapping with predictable, streaming memory access patterns on FPGAs and ASICs, since each layer processes data sequentially without skip connections or complex branching \cite{gurbuz2022deep}.
 
-Our contributions are: an evolutionary NAS algorithm jointly optimizing accuracy and hardware-aware compactness; an ultra-compact 3,539-parameter model achieving 90.1\% test accuracy suitable for on-chip SRAM storage; complete characterization from RF reception to neural network inference; and a practical deployment path through TensorFlow/Core~ML tooling \cite{fontaine2019low, liu2017wireless}.
+Our contributions include an evolutionary NAS algorithm jointly optimizing accuracy and compactness, an ultra-compact model with only 3,539 parameters achieving 90.1\% test accuracy, Core ML deployment with sub-millisecond inference on iPhone Neural Engine, a complete application for iOS, and experimental validation on mobile hardware \cite{fontaine2019low, liu2017wireless}.
+
+To support reproducibility, the complete implementation, training scripts, and updated artifacts are publicly available at \url{https://shorturl.at/0rjX3}.
 
 % =========================================================
 \section{Related Work}
@@ -108,30 +133,30 @@ Table~\ref{tab:comparison_modern_wireless} summarizes state-of-the-art wireless 
 
 \begin{table*}[!t]
 \centering
-\caption{Comparison of Signal Classification Methods for Modern Wireless Technologies with Hardware Complexity Analysis}
+\caption{Comparison of Signal Classification Methods for Modern Wireless Technologies with Hardware Complexity Analysis$^{a,b,e}$}
 \resizebox{\textwidth}{!}{%
 \begin{threeparttable}
-\begin{tabular}{|l|l|c|c|c|c|c|}
+\begin{tabular}{|l|l|c|c|c|c|}
 \hline
-\textbf{Model} & \textbf{Accuracy} & \textbf{\# Classes} & \textbf{Technologies} & \textbf{Dataset} & \textbf{Model Complexity} & \textbf{Est. Memory$^{e}$} \\
+\textbf{Model} & \textbf{Accuracy} & \textbf{\# Classes} & \textbf{Technologies} & \textbf{Dataset$^{a}$} & \textbf{Model Complexity$^{b}$} \\
 \hline
-\textbf{This Work (NAS)} & \textbf{90.1\%} & \textbf{3} & \textbf{LTE, WiFi, DVB-T} & \textbf{OTA} & \textbf{Very Low (3.5k params)} & \textbf{$\sim$14 KB} \\
+\textbf{This Work (NAS)} & \textbf{90.1\%} & \textbf{3} & \textbf{LTE, WiFi, DVB-T} & \textbf{OTA} & \textbf{Very Low (3.5k params)} \\
 \hline
-Ide et al. 2024 \cite{ide2024evaluation} & 96.8\% & 3 & 5G, LTE, WLAN & SYN & Low ($\sim$138k params) & $\sim$552 KB \\
+Ide et al. 2024 \cite{ide2024evaluation} & 96.8\% & 3 & 5G, LTE, WLAN & SYN & Low ($\sim$138k params) \\
 \hline
-Shebert et al. 2021 \cite{shebert2021wireless} & 94.5\% at SNR $>$ 0 dB & 6 & LTE, 5G NR, WiFi 6, BLE & SYN & High (2.1M -- 67.1M) & 8.4--268 MB \\
+Shebert et al. 2021 \cite{shebert2021wireless} & 94.5\% at SNR $>$ 0 dB & 6 & LTE, 5G NR, WiFi 6, BLE & SYN & High (2.1M -- 67.1M) \\
 \hline
-Zhang et al. 2021 \cite{zhang2021signal} & 98.5\% (SYN), 96.2\% (OTA) & 3 & WiFi, LTE LAA, 5G NR-U & OTA \& SYN & Medium (CNN-RNN) & -- \\
+Zhang et al. 2021 \cite{zhang2021signal}$^{e}$ & 98.5\% (SYN), 96.2\% (OTA) & 3 & WiFi, LTE LAA, 5G NR-U & OTA \& SYN & Low ($\sim$165k params)$^{e}$ \\
 \hline
-Fontaine et al. 2019 \cite{fontaine2019low} & 97.8\% / 88.0\% & 3 & LTE, WiFi, DVB-T & OTA & Medium (213k) / Very Low (6.4k) & 852 KB / 26 KB \\
+Fontaine et al. 2019 \cite{fontaine2019low} & 97.8\% / 88.0\% & 3 & LTE, WiFi, DVB-T & OTA & Medium (213k) / Very Low (6.4k) \\
 \hline
-Gu et al. 2019 \cite{gu2019deep} & 95\% at high SNR & 2 & LTE-U, WiFi & OTA & Low (99.9k params) & $\sim$400 KB \\
+Gu et al. 2019 \cite{gu2019deep} & 95\% at high SNR & 2 & LTE-U, WiFi & OTA & Low (99.9k params) \\
 \hline
 \end{tabular}
 \begin{tablenotes}
-\item[a] OTA: Over-the-Air / SYN: Synthetic. BLE: Bluetooth Low Energy
-\item[b] Complexity categorization: Very Low ($<$20k), Low (20k--500k), Medium (500k--5M), High ($>$5M params)
-\item[c] Estimated memory assuming 32-bit floating point (4 bytes/parameter). INT8 quantization reduces by 4$\times$
+\item[a] OTA: Over-the-Air. SYN: Synthetic.
+\item[b] Complexity categorization: Very Low ($<$20k), Low (20k--500k), Medium (500k--5M), High ($>$5M params).
+\item[e] Estimated from the reported architecture (CNN-LSTM) due to missing hyperparameter details in the original work.
 \end{tablenotes}
 \end{threeparttable}
 }
@@ -142,30 +167,30 @@ Gu et al. 2019 \cite{gu2019deep} & 95\% at high SNR & 2 & LTE-U, WiFi & OTA & Lo
 
 NAS automates the discovery of optimal neural network architectures \cite{elsken2019neural}. Zoph and Le \cite{zoph2016neural} introduced reinforcement learning-based NAS, while Real et al. \cite{real2019regularized} showed that evolutionary algorithms achieve comparable results at lower cost.
 
-We adopt an evolutionary approach because it naturally handles discrete architectural choices and allows flexible integration of hardware-aware constraints through the fitness function \cite{real2019regularized}. We use a scalarized fitness function combining accuracy and efficiency into a single objective, simplifying the search while achieving the desired trade-off.
+We adopt an evolutionary approach because it naturally handles discrete architectural choices---such as the number of layers, filter counts, and kernel sizes---and allows flexible integration of hardware-aware constraints directly into the fitness function \cite{real2019regularized}. Unlike gradient-based NAS methods that require continuous relaxations of the search space, evolutionary strategies evaluate complete architectures through actual training runs, producing directly deployable models without a separate architecture derivation step.
+
+Our implementation uses tournament selection, uniform crossover of architectural genes, and a 10\% mutation rate to explore the search space efficiently. We use a scalarized fitness function combining classification error and a parameter-count penalty into a single minimization objective (detailed in Section~III-C), simplifying the search while enforcing the desired compactness--accuracy trade-off  \cite{Tournament2026}.
 
 % =========================================================
 \section{System Architecture and Methodology}
 % =========================================================
 
-\subsection{Signal Processing Pipeline}
+%\subsection{Signal Processing Pipeline}
 
-The RF signal reception chain (Fig.~\ref{fig:rf_chain}) captures electromagnetic signals through an antenna, filters them via an RF bandpass filter, and amplifies them with a Low-Noise Amplifier (LNA). The signal then enters a quadrature downconversion stage producing the In-phase (I) and Quadrature (Q) components. Each branch passes through Low-Pass Filters (LPF) before dual ADCs simultaneously digitize the I and Q signals. The dataset \cite{fontaine2023dataset} was collected using USRP equipment at 1~Msps with 12-bit resolution.
+The RF signal reception chain (Fig.~\ref{fig:rf_chain}) captures electromagnetic signals through an antenna, filters them via an RF bandpass filter, and amplifies them with a Low-Noise Amplifier (LNA). The signal then enters a quadrature downconversion stage producing the In-phase (I) and Quadrature (Q) components. Each branch passes through Low-Pass Filters (LPF) before dual analog-to-digital converters (ADCs) simultaneously digitize the I and Q signals. Finally, we reach the AI engine that hosts the CNN model.
 
-\begin{figure}[htbp]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=\columnwidth]{Images/rf_chain.png}
+\includegraphics[width=1.0\textwidth]{Images/rf_chain.png}
 \caption{RF reception signal chain: antenna, filtering, LNA, quadrature I/Q demodulation with PLL synthesizer, baseband filtering, dual ADC, and DSP with AI-based classification.}
 \label{fig:rf_chain}
-\end{figure}
-
-From a hardware deployment perspective, the 98.6\% parameter reduction enables the entire model to reside in on-chip SRAM ($\sim$14~KB FP32, $\sim$3.5~KB INT8), eliminating external DRAM access---the dominant source of power consumption and latency in neural network accelerators on FPGAs and ASICs.
+\end{figure*}
 
 \subsection{Dataset and Preprocessing}
 
 We formulate wireless signal classification as predicting $y \in \{\text{LTE}, \text{DVB-T}, \text{WiFi}\}$ from input IQ signal $\mathbf{x} \in \mathbb{R}^{512 \times 2}$, subject to constraints of fewer than 20,000 parameters ($<$80~KB in FP32), inference latency below 1~ms, and regular structure amenable to hardware accelerator mapping.
 
-We employ the Fontaine and Shahid dataset \cite{fontaine2023dataset}, containing over-the-air IQ signals from LTE, WiFi, and DVB-T transmissions collected at six locations in Gent, Belgium, using USRP equipment at 1~Msps \cite{fontaine2023github}. The dataset provides authentic signal characteristics with naturally varying strength and noise levels \cite{fontaine2019low}, ensuring robustness to practical imperfections such as ADC quantization noise and I/Q imbalance. It comprises 135 binary files with 45 per class.
+We employ the Fontaine and Shahid dataset \cite{fontaine2023dataset}, containing over-the-air IQ signals from LTE, WiFi, and DVB-T transmissions collected at six locations in Gent, Belgium, using USRP equipment at 1~Msps \cite{fontaine2023github}. The dataset provides authentic signal characteristics with naturally varying strength and noise levels \cite{fontaine2019low}, ensuring robustness to real imperfections. The raw corpus comprises 135 binary files (45 per class), which are then segmented into 512-sample IQ chunks used as training/validation/test samples in our NAS pipeline.
 
 The preprocessing pipeline applies per-channel statistical normalization, requiring only a single multiply-accumulate operation per sample with precomputed $1/\sigma$ coefficients. Signals are segmented into non-overlapping 512-sample chunks, where the power-of-two length facilitates efficient memory addressing in hardware. For NAS experiments, we use balanced subsets per class for train/validation/test and reshape segments to $(N, 512, 2)$ for 1D convolutional processing.
 
@@ -180,12 +205,19 @@ F = 1.2 \cdot (1-A) + 0.25 \cdot P_{\mathrm{penalty}}
 
 \noindent where $A \in [0,1]$ is validation accuracy and $P_{\mathrm{penalty}}$ is a piecewise parameter penalty with mild penalty up to $\sim$10k parameters and stronger penalty beyond $\sim$16k parameters. Each generation proceeds through evaluation, elite selection, tournament selection, crossover, mutation, and elitist replacement.
 
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.8\textwidth]{Images/architecture_diagram_SMACD.png}
+\caption{NAS-generated compact architecture for IQ classification: Conv1D(16)-Conv1D(32)-GlobalAveragePooling-Dense(16)-Dense(3). Total: 3,539 parameters, $\sim$13.8~KB (FP32) or $\sim$3.5~KB (INT8).}
+\label{fig:architecture}
+\end{figure*}
+
 \subsection{Discovered Architecture}
 
 The updated NAS run discovered a compact architecture (Table~\ref{tab:architecture} and Fig.~\ref{fig:architecture}) consisting of two 1D convolutional layers (both with kernel size 5), batch normalization, dropout, global average pooling, and a compact dense head (16 and 3 units). Training uses Adam \cite{kingma2014adam} with categorical cross-entropy and dropout regularization \cite{srivastava2014dropout}. The final model contains 3,539 parameters (3,443 trainable and 96 non-trainable).
 
 \begin{table}[htbp]
-\caption{NAS-Generated Compact Architecture with Layer-Level Details}
+\caption{NAS-Generated Architecture with Layer-Level Details}
 \begin{center}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{lccccc}
@@ -208,31 +240,20 @@ Dense-2 (3 units, softmax) & (3) & 51 & 48 & 0.20 KB \\
 \label{tab:architecture}
 \end{center}
 \vspace{-2mm}
-\footnotesize{$^{a}$Weight memory in FP32 (4 bytes/param). INT8 quantization reduces to $\sim$3.5~KB. $^{b}$Approximate reduction operations for temporal averaging.}
+\footnotesize{$^{a}$Weight memory in FP32 (4 bytes/param). INT8 quantization reduces to $\sim$3.5~KB. MACs: Multiply-Accumulate operations per inference. $^{b}$Approximate reduction operations for temporal averaging.}
 \end{table}
 
-The compact convolutional pipeline produces predictable streaming memory access patterns suitable for hardware accelerators. The 3,539 parameters fit easily within typical FPGA BRAM resources (e.g., a Xilinx Artix-7 XC7A35T provides 225~KB), leaving significant memory headroom for buffering and control.
+The compact convolutional pipeline produces predictable streaming memory access patterns suitable for hardware accelerators. The model fit easily within typical FPGA BRAM resources (e.g., a Xilinx Artix-7 XC7A35T provides 225~KB), leaving significant memory headroom for buffering and control.
 
-\begin{figure*}[htbp]
-\centering
-\includegraphics[width=1.0\textwidth]{Images/architecture_diagram_SMACD.png}
-\caption{NAS-generated compact architecture for IQ classification: Conv1D(16)-Conv1D(32)-GlobalAveragePooling-Dense(16)-Dense(3). Total: 3,539 parameters, $\sim$13.8~KB (FP32) or $\sim$3.5~KB (INT8).}
-\label{fig:architecture}
-\end{figure*}
+%\subsection{iOS Deployment via Core~ML}
 
-\subsection{iOS Deployment via Core~ML}
-
-The trained TensorFlow model \cite{abadi2016tensorflow} is converted to Core~ML format \cite{coreml_guide} using \mbox{coremltools}, targeting the \mbox{mlprogram} format for Neural Engine optimization. The conversion removes dropout layers, fuses batch normalization into convolutional weights, and adapts the data layout for efficient mobile inference. The compact model size ensures the network can reside in local memory, and the iOS application executes the complete pipeline---IQ loading, normalization, segmentation, and inference---entirely on-device without cloud connectivity.
+For the deployment, the trained TensorFlow model \cite{abadi2016tensorflow} is converted to Core~ML format \cite{coreml_guide} using \mbox{coremltools}, targeting the \mbox{mlprogram} format for Neural Engine optimization. The conversion removes dropout layers, fuses batch normalization into convolutional weights, and adapts the data layout for efficient mobile inference. The compact model size ensures the network can reside in local memory, and the iOS application executes the complete pipeline; IQ loading, normalization, segmentation, and inference, entirely on-device without cloud connectivity.
 
 % =========================================================
 \section{Experimental Results}
 % =========================================================
 
-\subsection{NAS Convergence}
-
 The evolutionary algorithm converged over 10 generations, with best fitness improving from 0.1912 to 0.1344 (lower is better). During search, validation accuracy reached 88.8\% with 3,539 parameters, showing stable convergence toward compact, hardware-friendly architectures.
-
-\subsection{Classification Performance}
 
 The model achieved 94.5\% training, 87.7\% validation, and 90.1\% test accuracy, showing a strong compactness-accuracy compromise for strict edge constraints. Table~\ref{tab:class_metrics} reports per-class performance with macro-averaged precision of 90.2\%, recall of 90.1\%, and F1-score of 90.1\%. The dominant confusion remains between DVB-T and WiFi, likely due to spectral similarities between OFDM-based technologies at baseband.
 
@@ -258,9 +279,7 @@ WiFi & 96.2\% & 90.8\% & 93.4\% & 0.6 & 8.6 & 90.8 \\
 \end{center}
 \end{table}
 
-\subsection{Neural Engine Performance}
-
-The TensorFlow-to-Core~ML deployment path is maintained for edge execution. Fig.~\ref{fig:app} shows the iOS application interface used for real-time classification. For the updated 3,539-parameter model, the current work focuses on algorithmic optimization and offline evaluation; detailed on-device latency/power characterization is left as immediate future work.
+The TensorFlow-to-Core~ML deployment path is maintained for edge execution. Fig.~\ref{fig:app} shows the iOS application interface used for real-time classification. Experimental deployment tests were conducted on an iPhone 17 Pro Max featuring an Apple A19 Pro SoC (3~nm, 6-core CPU with performance and efficiency cores, and improved GPU), 12~GB LPDDR5X RAM, and 256~GB storage. For the updated 3,539-parameter model, the current work focuses on algorithmic optimization and offline evaluation; detailed on-device latency/power characterization is left as immediate future work.
 
 \begin{figure}[htbp]
 \centering
@@ -269,35 +288,34 @@ The TensorFlow-to-Core~ML deployment path is maintained for edge execution. Fig.
 \label{fig:app}
 \end{figure}
 
-\subsection{Comparison with Baselines and State-of-the-Art}
+%All baselines were trained on the same Fontaine dataset \cite{fontaine2023dataset} with identical preprocessing and training procedures. Table~\ref{tab:comparison} summarizes the results. Our updated model achieves 90.1\% accuracy with 3,539 parameters---a 98.6\% reduction relative to a 250k-parameter traditional CNN baseline, while still enabling fully on-chip SRAM operation.
 
-All baselines were trained on the same Fontaine dataset \cite{fontaine2023dataset} with identical preprocessing and training procedures. Table~\ref{tab:comparison} summarizes the results. Our updated model achieves 90.1\% accuracy with 3,539 parameters---a 98.6\% reduction relative to a 250k-parameter traditional CNN baseline, while still enabling fully on-chip SRAM operation.
+%Compared with Fontaine et al. \cite{fontaine2019low}, their IQ-CNN achieves 97.8\% but requires 213k parameters, while their compact model (6.4k params) reaches 88.0\%. Our model reaches 90.1\% with only 3.5k parameters, improving compact-model accuracy by 2.1 points while using fewer parameters.
 
-Compared with Fontaine et al. \cite{fontaine2019low}, their IQ-CNN achieves 97.8\% but requires 213k parameters, while their compact model (6.4k params) reaches 88.0\%. Our model reaches 90.1\% with only 3.5k parameters, improving compact-model accuracy by 2.1 points while using fewer parameters.
+%\begin{table}[htbp]
+%\caption{Comparison with Baselines and State-of-the-Art}
+%\label{tab:comparison}
+%\centering
+%\resizebox{\columnwidth}{!}{%
+%\begin{tabular}{lccccc}
+%\toprule
+%\textbf{Approach} & \textbf{Params} & \textbf{Acc.} & \textbf{Size} & \textbf{On-Chip$^{a}$} & \textbf{Mobile} \\
+%\midrule
+%Traditional CNN$^{*}$ & 250k+ & 89.2\% & 1.2 MB & No & No \\
+%Traditional LSTM$^{*}$ & 180k+ & 87.5\% & 0.8 MB & Marginal & No \\
+%Manual CNN-LSTM$^{*}$ & 95k+ & 91.3\% & 0.4 MB & Possible & No \\
+%Fontaine IQ-CNN \cite{fontaine2019low} & 213k & 97.8\% & 852 KB & No & No \\
+%Fontaine Manual RF \cite{fontaine2019low} & 6.4k & 88.0\% & 26 KB & Yes & No \\
+%\textbf{NAS (Ours, updated)} & \textbf{3.5k} & \textbf{90.1\%} & %\textbf{14 KB} & \textbf{Yes} & \textbf{In progress} \\
+%\bottomrule
+%\end{tabular}%
+%}
 
-\begin{table}[htbp]
-\caption{Comparison with Baselines and State-of-the-Art}
-\label{tab:comparison}
-\centering
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{lcccccc}
-\toprule
-\textbf{Approach} & \textbf{Params} & \textbf{Acc.} & \textbf{Size} & \textbf{On-Chip$^{a}$} & \textbf{Mobile} & \textbf{Est. Power$^{b}$} \\
-\midrule
-Traditional CNN$^{*}$ & 250k+ & 89.2\% & 1.2 MB & No & No & $\sim$500 mW \\
-Traditional LSTM$^{*}$ & 180k+ & 87.5\% & 0.8 MB & Marginal & No & $\sim$800 mW \\
-Manual CNN-LSTM$^{*}$ & 95k+ & 91.3\% & 0.4 MB & Possible & No & $\sim$350 mW \\
-Fontaine IQ-CNN \cite{fontaine2019low} & 213k & 97.8\% & 852 KB & No & No & -- \\
-Fontaine Manual RF \cite{fontaine2019low} & 6.4k & 88.0\% & 26 KB & Yes & No & -- \\
-\textbf{NAS (Ours, updated)} & \textbf{3.5k} & \textbf{90.1\%} & \textbf{14 KB} & \textbf{Yes} & \textbf{In progress} & \textbf{--} \\
-\bottomrule
-\end{tabular}%
-}
-\begin{flushleft}
-\footnotesize
-$^{*}$ Same dataset, preprocessing, and training. $^{a}$ On-chip SRAM feasibility (typical FPGA: 100--500~KB BRAM). $^{b}$ Estimated at 100~MHz.
-\end{flushleft}
-\end{table}
+%\begin{flushleft}
+%\footnotesize
+%$^{*}$ Same dataset, preprocessing, and training. $^{a}$ On-chip SRAM feasibility (typical FPGA: 100--500~KB BRAM).
+%\end{flushleft}
+%\end{table}
 
 % =========================================================
 \section{Discussion and Conclusion}
@@ -305,9 +323,9 @@ $^{*}$ Same dataset, preprocessing, and training. $^{a}$ On-chip SRAM feasibilit
 
 Our results demonstrate that evolutionary NAS can discover architectures that strongly favor efficiency while preserving useful classification accuracy. The updated 3,539-parameter model highlights an aggressive compactness regime where the model remains practical for on-chip SRAM deployment and low-compute inference.
 
-The evaluation uses 135 files across three classes; larger datasets would strengthen generalization claims. The model classifies only LTE, DVB-T, and WiFi, though preliminary experiments suggest scalability to 5 classes. It operates on preprocessed segments rather than continuous signals, and hardware resource estimates are analytical projections pending FPGA synthesis.
+%The evaluation uses 135 files across three classes; larger datasets would strengthen generalization claims. It operates on preprocessed segments rather than continuous signals, and hardware resource estimates are analytical projections pending FPGA synthesis.
 
-In conclusion, our updated evolutionary NAS run discovered an ultra-compact model achieving 90.1\% accuracy with 98.6\% parameter reduction (3,539 parameters), enabling spectrum monitoring and cognitive radio under strict edge constraints. Future work includes targeted accuracy recovery at the 5k--15k parameter range, INT8 quantization with hardware-in-the-loop validation, complete on-device latency/power benchmarking, FPGA synthesis, and extension to multi-antenna MIMO systems.
+Our updated evolutionary NAS run discovered an ultra-compact model achieving 90.1\% accuracy with significant parameter reduction (3,539 parameters), enabling spectrum monitoring and cognitive radio under strict edge constraints.
 
 \bibliographystyle{IEEEtran}
 \bibliography{References/references}
