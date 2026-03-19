@@ -19,4 +19,3 @@ __pycache__/
 
 # Paper / dataset (keep out of GitHub)
 SMACD.tex
-split_dataset/
