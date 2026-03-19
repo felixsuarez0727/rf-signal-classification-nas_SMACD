@@ -24,6 +24,21 @@ This project demonstrates Neural Architecture Search (NAS) for wireless signal c
 
 ---
 
+## 🤝 Funding and Supporting Institutions
+
+<p align="center">
+  <img src="logos/logo%20CSIC.png" alt="CSIC" height="70" />
+  <img src="logos/_Logo-Momentum-Negativo_Circular.png" alt="Momentum" height="70" />
+  <img src="logos/Next_Generation.png" alt="Next Generation" height="70" />
+</p>
+<p align="center">
+  <img src="logos/PRTR.png" alt="PRTR" height="70" />
+  <img src="logos/logo-doraito.png" alt="Logo Doraito" height="70" />
+  <img src="logos/imse.png" alt="IMSE" height="70" />
+</p>
+
+---
+
 ## 🧬 Neural Architecture Search (NAS)
 
 ### **What is NAS?**
