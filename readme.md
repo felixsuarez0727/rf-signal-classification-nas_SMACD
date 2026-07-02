@@ -24,21 +24,6 @@ This project demonstrates Neural Architecture Search (NAS) for wireless signal c
 
 ---
 
-## 🤝 Funding and Supporting Institutions
-
-<p align="center">
-  <img src="logos/logo%20CSIC.png" alt="CSIC" height="70" />
-  <img src="logos/_Logo-Momentum-Negativo_Circular.png" alt="Momentum" height="70" />
-  <img src="logos/Next_Generation.png" alt="Next Generation" height="70" />
-</p>
-<p align="center">
-  <img src="logos/PRTR.png" alt="PRTR" height="70" />
-  <img src="logos/logo-doraito.png" alt="Logo Doraito" height="70" />
-  <img src="logos/imse.png" alt="IMSE" height="70" />
-</p>
-
----
-
 ## 🧬 Neural Architecture Search (NAS)
 
 ### **What is NAS?**
@@ -51,15 +36,24 @@ Neural Architecture Search automatically discovers optimal neural network archit
 - **Optimization Parameters**: Learning rates, batch sizes, optimizers
 
 ### **NAS Implementation Features**
-```python
-# Optimized search space includes:
-search_space = {
-    'conv_layers': [2, 3, 4],  # Removed single layer
-    'conv_filters': [[16, 32], [32, 64], [16, 32, 64], [32, 64, 128]],
-    'lstm_units': [32, 64, 128],  # Removed very small units
-    'dense_units': [16, 32, 64],  # Optimized sizes
-    'optimizer': ['adam'],  # Focused on best optimizer
-    'batch_size': [32, 64]  # Stable batch sizes
+
+The search space is fully defined in **`nas_search_space.json`** at the root of the repository. Edit that file directly to change any search parameter — no Python code modification required.
+
+```json
+{
+  "conv_layers": [1, 2, 3],
+  "conv_filters": [[8, 16], [16, 32], [8, 16, 32], [16, 32, 48]],
+  "conv_kernels": [3, 5],
+  "conv_activation": ["relu", "elu"],
+  "conv_type": ["standard", "separable"],
+  "pooling_type": ["max", "average", "global_avg"],
+  "lstm_layers": [0, 1],
+  "lstm_units": [16, 32, 64],
+  "dense_layers": [1, 2],
+  "dense_units": [16, 32],
+  "optimizer": ["adam"],
+  "learning_rate": [0.001, 0.0005],
+  "batch_size": [32, 64]
 }
 ```
 
@@ -82,40 +76,46 @@ NAS optimizes for multiple objectives simultaneously:
 ## 📂 Project Structure
 
 ```
-LTE_DVB_T_WiFi_small_model/
+rf-signal-classification-nas_SMACD/
 ├── 📁 Core Project Files
-│   ├── train.py                    # Original training script
-│   ├── test.py                     # Model testing utilities
-│   ├── model_summary.py           # Model analysis tools
-│   ├── confusion_matrix.py        # Performance visualization
-│   └── cnn_lstm_iq_model.keras    # Original trained model
+│   ├── train.py                          # Training script
+│   ├── test.py                           # Model testing utilities
+│   ├── model_summary.py                  # Model analysis tools
+│   ├── confusion_matrix.py               # Performance visualization
+│   ├── prune_nas_model.py                # Magnitude pruning + fine-tuning
+│   ├── convert_to_coreml.py              # TF → Core ML conversion for iOS
+│   └── nas_fast_demo.py                  # Main NAS entry point (RECOMMENDED)
+│
+├── 📁 NAS Configuration
+│   └── nas_search_space.json             # ⚙️ Search space config (edit here)
 │
 ├── 📁 Neural Architecture Search
-│   ├── neural_architecture_search/
-│   │   ├── __init__.py            # NAS package initialization
-│   │   ├── nas_optimization.py    # Core NAS implementation
-│   │   ├── demo_nas.py            # NAS demonstrations
-│   │   ├── demo_nas_complete.py   # Complete NAS demo
-│   │   ├── requirements.txt       # NAS dependencies
-│   │   └── README.md              # NAS documentation
-│   └── nas_fast_demo.py           # Optimized NAS demo (RECOMMENDED)
+│   └── neural_architecture_search/
+│       ├── __init__.py
+│       ├── nas_optimization.py           # Core NAS — loads nas_search_space.json
+│       ├── demo_nas.py
+│       ├── demo_nas_complete.py
+│       ├── requirements.txt
+│       └── README.md
 │
-├── 📁 Data & Results
-│   ├── split_dataset/             # Training/validation/test data
-│   │   ├── train/                 # Training samples
-│   │   ├── validation/            # Validation samples
-│   │   └── test/                  # Test samples
-│   ├── results_nas/               # NAS optimization results
-│   │   ├── nas_optimized_wireless_classifier.keras
-│   │   ├── nas_confusion_matrix_*.png
-│   │   ├── nas_training_log.txt
-│   │   ├── nas_results.json
-│   │   └── nas_search_progress.png
-│   └── pictures/                  # Original model visualizations
+├── 📁 Data
+│   └── split_dataset/
+│       ├── train/                        # Training .bin files
+│       ├── validation/                   # Validation .bin files
+│       └── test/                         # Test .bin files
+│
+├── 📁 Results
+│   ├── results_nas/                      # Baseline NAS run (4,715 params, 86.6%)
+│   └── results_nas_highacc_v1/           # Best model (3,539 params, 90.1%) ✅
+│       ├── nas_optimized_wireless_classifier.keras
+│       ├── nas_model.mlpackage           # Core ML package for iOS
+│       ├── nas_confusion_matrix_*.png
+│       ├── nas_training_log.txt
+│       └── nas_results.json
 │
 └── 📄 Documentation
-    ├── readme.md                  # This file
-    └── requirements.txt           # Dependencies
+    ├── readme.md                         # This file
+    └── requirements.txt                  # Dependencies
 ```
 
 ---
@@ -306,13 +306,25 @@ print(f"Search space explored: {results['search_space_size']:,}")
 ```
 
 ### Custom Search Space
-```python
-# Modify search space for specific requirements
-nas.search_space = {
-    'conv_layers': [2, 3],  # Limit to 2-3 CNN layers
-    'lstm_units': [16, 32], # Smaller LSTM units
-    'dense_units': [8, 16]  # Compact dense layers
+
+Edit **`nas_search_space.json`** directly — no Python changes needed:
+
+```json
+{
+  "conv_layers": [2, 3],
+  "lstm_units": [16, 32],
+  "dense_units": [8, 16]
 }
+```
+
+Alternatively, pass a custom JSON path at runtime:
+
+```python
+nas = WirelessSignalNAS(
+    input_shape=(512, 2),
+    num_classes=3,
+    search_space_path="my_custom_search_space.json"
+)
 ```
 
 ---
@@ -480,3 +492,18 @@ python nas_fast_demo.py \
   --seed 42 \
   --results-dir results_nas_highacc_v1
 ```
+
+---
+
+## 🤝 Funding and Supporting Institutions
+
+<p align="center">
+  <img src="logos/logo%20CSIC.png" alt="CSIC" height="70" />
+  <img src="logos/_Logo-Momentum-Negativo_Circular.png" alt="Momentum" height="70" />
+  <img src="logos/Next_Generation.png" alt="Next Generation" height="70" />
+</p>
+<p align="center">
+  <img src="logos/PRTR.png" alt="PRTR" height="70" />
+  <img src="logos/logo-doraito.png" alt="Logo Doraito" height="70" />
+  <img src="logos/imse.png" alt="IMSE" height="70" />
+</p>
