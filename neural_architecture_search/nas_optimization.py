@@ -2,11 +2,12 @@
 Neural Architecture Search (NAS) for wireless signal classification
 """
 
+import json
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
-    Conv1D, MaxPooling1D, LSTM, Dense, Dropout, 
+    Conv1D, MaxPooling1D, LSTM, Dense, Dropout,
     BatchNormalization, Input, GlobalAveragePooling1D,
     Bidirectional, SeparableConv1D, AveragePooling1D
 )
@@ -14,10 +15,11 @@ from tensorflow.keras.optimizers import Adam, RMSprop, SGD
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import random
 from typing import Dict, List, Tuple, Any
-# Import config from parent directory
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
+
+DEFAULT_SEARCH_SPACE_PATH = Path(__file__).parent.parent / "nas_search_space.json"
 
 try:
     from wireless_classifier_optimized.config import OPTIMIZATION_CONFIG
@@ -41,9 +43,9 @@ class WirelessSignalNAS:
     Neural Architecture Search for wireless signal classification models
     """
     
-    def __init__(self, input_shape: Tuple, num_classes: int = 3, 
+    def __init__(self, input_shape: Tuple, num_classes: int = 3,
                  population_size: int = 20, generations: int = 10,
-                 eval_epochs: int = 5):
+                 eval_epochs: int = 5, search_space_path: str = None):
         """
         Initialize NAS for wireless signal classification
         
@@ -58,9 +60,12 @@ class WirelessSignalNAS:
         self.population_size = population_size
         self.generations = generations
         self.eval_epochs = eval_epochs
-        
-        # Architecture search space
-        self.search_space = self._define_search_space()
+
+        # Load search space from JSON config
+        path = Path(search_space_path) if search_space_path else DEFAULT_SEARCH_SPACE_PATH
+        with open(path, "r") as f:
+            self.search_space = json.load(f)
+        print(f"   Search space loaded from: {path}")
         
         # Population and results tracking
         self.population = []
@@ -74,55 +79,6 @@ class WirelessSignalNAS:
         print(f"   Generations: {generations}")
         print(f"   Eval epochs/arch: {eval_epochs}")
         print(f"   Search space size: {self._calculate_search_space_size()}")
-    
-    def _define_search_space(self) -> Dict[str, List]:
-        """
-        Define the search space for wireless signal architectures
-        
-        This space is biased towards:
-        - Model sizes below ~8k–10k parameters
-        - Simple CNN + (opcional) una sola LSTM pequeña
-        - Uso frecuente de GlobalAveragePooling para reducir densas grandes
-        """
-        return {
-            # CNN Layer configurations (prefer fewer filters and layers)
-            'conv_layers': [1, 2, 3],
-            'conv_filters': [
-                [8, 16],
-                [16, 32],
-                [8, 16, 32],
-                [16, 32, 48]
-            ],
-            'conv_kernels': [3, 5],
-            'conv_activation': ['relu', 'elu'],
-            # Standard and separable convs (separable = más eficiente)
-            'conv_type': ['standard', 'separable'],
-            
-            # Pooling configurations (including global average pooling)
-            'pooling_type': ['max', 'average', 'global_avg'],
-            'pooling_size': [2, 3],
-            
-            # LSTM configurations (opcional y pequeño)
-            'lstm_layers': [0, 1],
-            'lstm_units': [16, 32, 64],
-            'lstm_bidirectional': [False],
-            'lstm_dropout': [0.2, 0.3],
-            
-            # Dense layer configurations (compactas)
-            'dense_layers': [1, 2],
-            'dense_units': [16, 32],
-            'dense_activation': ['relu', 'elu'],
-            'dense_dropout': [0.3, 0.4],
-            
-            # Regularization
-            'batch_norm': [True],
-            'dropout_rate': [0.2, 0.3, 0.4],
-            
-            # Optimizer configurations
-            'optimizer': ['adam'],
-            'learning_rate': [0.001, 0.0005],
-            'batch_size': [32, 64]
-        }
     
     def _calculate_search_space_size(self) -> int:
         """

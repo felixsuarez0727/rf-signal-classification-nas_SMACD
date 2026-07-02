@@ -1,0 +1,27 @@
+{
+  "conv_layers": [1, 2, 3],
+  "conv_filters": [
+    [8, 16],
+    [16, 32],
+    [8, 16, 32],
+    [16, 32, 48]
+  ],
+  "conv_kernels": [3, 5],
+  "conv_activation": ["relu", "elu"],
+  "conv_type": ["standard", "separable"],
+  "pooling_type": ["max", "average", "global_avg"],
+  "pooling_size": [2, 3],
+  "lstm_layers": [0, 1],
+  "lstm_units": [16, 32, 64],
+  "lstm_bidirectional": [false],
+  "lstm_dropout": [0.2, 0.3],
+  "dense_layers": [1, 2],
+  "dense_units": [16, 32],
+  "dense_activation": ["relu", "elu"],
+  "dense_dropout": [0.3, 0.4],
+  "batch_norm": [true],
+  "dropout_rate": [0.2, 0.3, 0.4],
+  "optimizer": ["adam"],
+  "learning_rate": [0.001, 0.0005],
+  "batch_size": [32, 64]
+}
