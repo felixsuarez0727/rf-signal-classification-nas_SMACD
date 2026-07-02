@@ -77,25 +77,22 @@ NAS optimizes for multiple objectives simultaneously:
 
 ```
 rf-signal-classification-nas_SMACD/
-├── 📁 Core Project Files
+├── 📁 Core Scripts (raíz)
 │   ├── train.py                          # Training script
 │   ├── test.py                           # Model testing utilities
-│   ├── model_summary.py                  # Model analysis tools
-│   ├── confusion_matrix.py               # Performance visualization
+│   ├── nas_fast_demo.py                  # Main NAS entry point (RECOMMENDED)
 │   ├── prune_nas_model.py                # Magnitude pruning + fine-tuning
 │   ├── convert_to_coreml.py              # TF → Core ML conversion for iOS
-│   └── nas_fast_demo.py                  # Main NAS entry point (RECOMMENDED)
-│
-├── 📁 NAS Configuration
-│   └── nas_search_space.json             # ⚙️ Search space config (edit here)
+│   ├── confusion_matrix.py               # Performance visualization
+│   ├── model_summary.py                  # Model analysis tools
+│   ├── nas_search_space.json             # ⚙️ Search space config (edit here)
+│   └── requirements.txt
 │
 ├── 📁 Neural Architecture Search
 │   └── neural_architecture_search/
-│       ├── __init__.py
 │       ├── nas_optimization.py           # Core NAS — loads nas_search_space.json
 │       ├── demo_nas.py
 │       ├── demo_nas_complete.py
-│       ├── requirements.txt
 │       └── README.md
 │
 ├── 📁 Data
@@ -106,16 +103,34 @@ rf-signal-classification-nas_SMACD/
 │
 ├── 📁 Results
 │   ├── results_nas_v1_baseline/          # Búsqueda inicial (pop=8, gen=5 → 4,715 params, 86.6%)
-│   └── results_nas_v2_paper/            # Modelo del paper  (pop=16, gen=10 → 3,539 params, 90.1%) ✅
-│       ├── nas_optimized_wireless_classifier.keras
-│       ├── nas_model.mlpackage           # Core ML package for iOS
-│       ├── nas_confusion_matrix_*.png
-│       ├── nas_training_log.txt
-│       └── nas_results.json
+│   │   ├── models/                       # Modelos y artefactos
+│   │   └── figures/                      # Matrices de confusión y gráficas
+│   ├── results_nas_v2_paper/             # Modelo del paper (pop=16, gen=10 → 3,539 params, 90.1%) ✅
+│   │   ├── models/
+│   │   │   ├── nas_optimized_wireless_classifier.keras
+│   │   │   ├── nas_model.mlpackage       # Core ML para iOS
+│   │   │   ├── nas_results.json
+│   │   │   └── nas_training_log.txt
+│   │   └── figures/
+│   │       ├── nas_confusion_matrix_*.png
+│   │       └── nas_search_progress.png
+│   ├── results_pruning/                  # Modelo podado (55.6% sparsity, 89.83% accuracy)
+│   │   ├── nas_paper_model_pruned_55pct_1571weights.keras
+│   │   ├── nas_paper_pruned_*.tflite
+│   │   └── nas_paper_pruning_results.json
+│   └── results_ios_app/                  # Builds de la app iOS (pruebas en iPhone)
+│       ├── WirelessSignalClassifier-Baseline-NAS-13p491.zip
+│       └── WirelessSignalClassifier-HighAcc-NAS-3p539.zip
 │
-└── 📄 Documentation
-    ├── readme.md                         # This file
-    └── requirements.txt                  # Dependencies
+└── 📁 Docs
+    ├── readme.md
+    └── docs/
+        ├── figures/                      # Diagramas de arquitectura
+        │   └── architecture_diagram_2.png
+        ├── logos/                        # Logos institucionales
+        │   ├── logo CSIC.png, imse.png, ...
+        ├── *_SMACD_.pdf                  # Artículo del paper (SMACD)
+        └── *_Poster__SMACD_.pdf          # Póster del paper (SMACD)
 ```
 
 ---
@@ -498,12 +513,12 @@ python nas_fast_demo.py \
 ## 🤝 Funding and Supporting Institutions
 
 <p align="center">
-  <img src="logos/logo%20CSIC.png" alt="CSIC" height="70" />
-  <img src="logos/_Logo-Momentum-Negativo_Circular.png" alt="Momentum" height="70" />
-  <img src="logos/Next_Generation.png" alt="Next Generation" height="70" />
+  <img src="docs/logos/logo%20CSIC.png" alt="CSIC" height="70" />
+  <img src="docs/logos/_Logo-Momentum-Negativo_Circular.png" alt="Momentum" height="70" />
+  <img src="docs/logos/Next_Generation.png" alt="Next Generation" height="70" />
 </p>
 <p align="center">
-  <img src="logos/PRTR.png" alt="PRTR" height="70" />
-  <img src="logos/logo-doraito.png" alt="Logo Doraito" height="70" />
-  <img src="logos/imse.png" alt="IMSE" height="70" />
+  <img src="docs/logos/PRTR.png" alt="PRTR" height="70" />
+  <img src="docs/logos/logo-doraito.png" alt="Logo Doraito" height="70" />
+  <img src="docs/logos/imse.png" alt="IMSE" height="70" />
 </p>
