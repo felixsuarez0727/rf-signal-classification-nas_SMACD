@@ -114,7 +114,7 @@ rf-signal-classification-nas_SMACD/
 │   │   └── figures/
 │   │       ├── nas_confusion_matrix_*.png
 │   │       └── nas_search_progress.png
-│   ├── results_pruning/                  # Modelo podado (55.6% sparsity, 89.83% accuracy)
+│   ├── results_nas_v2_paper_pruning/                  # Modelo podado (55.6% sparsity, 89.83% accuracy)
 │   │   ├── nas_paper_model_pruned_55pct_1571weights.keras
 │   │   ├── nas_paper_pruned_*.tflite
 │   │   └── nas_paper_pruning_results.json

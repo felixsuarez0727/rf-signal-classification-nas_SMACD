@@ -106,7 +106,7 @@ def main():
     )
     parser.add_argument(
         "--output-path",
-        default="results_pruning/nas_model_pruned.keras",
+        default="results_nas_v2_paper_pruning/nas_model_pruned.keras",
         help="Path to save pruned model."
     )
     parser.add_argument("--epochs", type=int, default=12, help="Total fine-tuning epochs across pruning stages.")
