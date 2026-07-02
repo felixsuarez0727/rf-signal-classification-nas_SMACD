@@ -349,7 +349,7 @@ if __name__ == "__main__":
     parser.add_argument("--train-samples-per-class", type=int, default=1000)
     parser.add_argument("--val-samples-per-class", type=int, default=400)
     parser.add_argument("--test-samples-per-class", type=int, default=400)
-    parser.add_argument("--results-dir", type=str, default="results_nas")
+    parser.add_argument("--results-dir", type=str, default="results_nas_v1_baseline")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 

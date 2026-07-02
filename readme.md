@@ -105,8 +105,8 @@ rf-signal-classification-nas_SMACD/
 │       └── test/                         # Test .bin files
 │
 ├── 📁 Results
-│   ├── results_nas/                      # Baseline NAS run (4,715 params, 86.6%)
-│   └── results_nas_highacc_v1/           # Best model (3,539 params, 90.1%) ✅
+│   ├── results_nas_v1_baseline/          # Búsqueda inicial (pop=8, gen=5 → 4,715 params, 86.6%)
+│   └── results_nas_v2_paper/            # Modelo del paper  (pop=16, gen=10 → 3,539 params, 90.1%) ✅
 │       ├── nas_optimized_wireless_classifier.keras
 │       ├── nas_model.mlpackage           # Core ML package for iOS
 │       ├── nas_confusion_matrix_*.png
@@ -149,14 +149,14 @@ python nas_fast_demo.py \
   --val-samples-per-class 500 \
   --test-samples-per-class 500 \
   --seed 42 \
-  --results-dir results_nas_highacc_v1
+  --results-dir results_nas_v2_paper
 ```
 
 This will:
 - Use larger balanced dataset subsets (1400/500/500 per class)
 - Run 10 generations with 16 architectures per generation
 - Evaluate architectures with longer per-candidate training (`eval_epochs=8`)
-- Save outputs in `results_nas_highacc_v1/`
+- Save outputs in `results_nas_v2_paper/`
 - Reproduce the current compact model result (3,539 params, 90.1% test accuracy)
 
 ### 3. **Run Complete NAS Demo**
@@ -470,7 +470,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🎉 Latest Update (Current Baseline)
 
-Current verified baseline from `results_nas_highacc_v1`:
+Current verified baseline from `results_nas_v2_paper`:
 
 - ✅ **90.1% test accuracy** with **3,539 parameters**
 - ✅ **91.6% parameter reduction** vs ~42K manual model baseline
@@ -490,7 +490,7 @@ python nas_fast_demo.py \
   --val-samples-per-class 500 \
   --test-samples-per-class 500 \
   --seed 42 \
-  --results-dir results_nas_highacc_v1
+  --results-dir results_nas_v2_paper
 ```
 
 ---

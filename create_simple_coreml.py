@@ -34,7 +34,7 @@ output = model.predict(dummy_input, verbose=0)
 print(f"✅ Test output shape: {output.shape}")
 
 # Save Keras model
-model.save('results_nas/simple_nas_model.keras')
+model.save('results_nas_v1_baseline/simple_nas_model.keras')
 print("💾 Saved Keras model")
 
 # Convert to Core ML
@@ -54,7 +54,7 @@ try:
     coreml_model.output_description["output"] = "Classification probabilities for LTE, DVB-T, WiFi"
     
     # Save Core ML model
-    output_path = "results_nas/nas_model.mlmodel"
+    output_path = "results_nas_v1_baseline/nas_model.mlmodel"
     coreml_model.save(output_path)
     
     print(f"✅ Core ML model saved to: {output_path}")

@@ -121,12 +121,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert Keras NAS model to Core ML.")
     parser.add_argument(
         "--model-path",
-        default="results_nas_highacc_v1/nas_optimized_wireless_classifier.keras",
+        default="results_nas_v2_paper/nas_optimized_wireless_classifier.keras",
         help="Path to .keras model."
     )
     parser.add_argument(
         "--output-path",
-        default="results_nas_highacc_v1/nas_model.mlpackage",
+        default="results_nas_v2_paper/nas_model.mlpackage",
         help="Output path for Core ML package (.mlpackage)."
     )
     parser.add_argument(

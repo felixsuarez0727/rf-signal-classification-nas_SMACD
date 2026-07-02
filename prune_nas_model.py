@@ -101,12 +101,12 @@ def main():
     parser = argparse.ArgumentParser(description="Prune NAS model and fine-tune it.")
     parser.add_argument(
         "--model-path",
-        default="results_nas/nas_optimized_wireless_classifier.keras",
+        default="results_nas_v1_baseline/nas_optimized_wireless_classifier.keras",
         help="Path to trained NAS model."
     )
     parser.add_argument(
         "--output-path",
-        default="results_nas/nas_optimized_wireless_classifier_pruned.keras",
+        default="results_nas_v1_baseline/nas_optimized_wireless_classifier_pruned.keras",
         help="Path to save pruned model."
     )
     parser.add_argument("--epochs", type=int, default=12, help="Total fine-tuning epochs across pruning stages.")

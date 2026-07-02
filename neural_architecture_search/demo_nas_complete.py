@@ -106,7 +106,7 @@ def main():
         conf_matrix = confusion_matrix(y_test_sparse, predicted_classes)
         
         # 7. Create results directory
-        results_dir = "results_nas"
+        results_dir = "results_nas_v1_baseline"
         os.makedirs(results_dir, exist_ok=True)
         print(f"\n📁 Creating results directory: {results_dir}/")
         
