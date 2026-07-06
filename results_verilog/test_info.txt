@@ -1,0 +1,15 @@
+Test vectors: 9 samples (3 per class)
+Sequence length: 512 IQ samples per inference
+Fixed-point: Q8.8 (signed 16-bit, 8 fractional bits)
+
+Index | Class  | Label
+------+--------+------
+    0 | LTE    |   0
+    1 | LTE    |   0
+    2 | LTE    |   0
+    3 | DVB-T  |   1
+    4 | DVB-T  |   1
+    5 | DVB-T  |   1
+    6 | WiFi   |   2
+    7 | WiFi   |   2
+    8 | WiFi   |   2
