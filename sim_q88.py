@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pure-numpy Q8.8 reference simulation.
+Pure-numpy Q4.12 reference simulation.
 Mirrors the exact hardware arithmetic in nas_classifier_top.sv so we can
 compare expected vs. actual Icarus Verilog output without TensorFlow.
 """
@@ -8,8 +8,8 @@ compare expected vs. actual Icarus Verilog output without TensorFlow.
 import numpy as np
 
 DW   = 16
-FRAC = 8
-SCALE = 1 << FRAC     # 256
+FRAC = 12
+SCALE = 1 << FRAC     # 4096
 SEQ  = 512
 K    = 5
 PAD  = K // 2         # 2
@@ -40,37 +40,41 @@ def read_hex_s16(path):
     return np.array(vals, dtype=np.int32)
 
 def elu_q88(acc_int):
-    """ELU on 40-bit accumulator integer → 16-bit Q8.8."""
+    """ELU on 40-bit accumulator integer → 16-bit fixed-point result."""
     x = (acc_int >> FRAC) & 0xFFFF
     x = x if x < 0x8000 else x - 0x10000   # to signed
-    ELU_MIN = -SCALE   # -1.0 in Q8.8
+    ELU_MIN = -SCALE   # -1.0 in the chosen Q-format
     if   x >= 0:        return x
     elif x >= ELU_MIN:  return x >> 1
     else:               return ELU_MIN
 
+import os as _os
+_WD = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "results_verilog")
+def _p(name): return _os.path.join(_WD, name)
+
 # ── Load weights ──────────────────────────────────────────────────────────────
-c1w = read_hex_s16("c1w.hex")   # K*IN_CH*C1F = 160
-c1b = read_hex_s16("c1b.hex")   # C1F = 16
-c2w = read_hex_s16("c2w.hex")   # K*C1F*C2F = 2560
-c2b = read_hex_s16("c2b.hex")   # C2F = 32
-d1w = read_hex_s16("d1w.hex")   # C2F*D1U = 512
-d1b = read_hex_s16("d1b.hex")   # D1U = 16
-d2w = read_hex_s16("d2w.hex")   # D1U*NC = 48
-d2b = read_hex_s16("d2b.hex")   # NC = 3
+c1w = read_hex_s16(_p("c1w.hex"))   # K*IN_CH*C1F = 160
+c1b = read_hex_s16(_p("c1b.hex"))   # C1F = 16
+c2w = read_hex_s16(_p("c2w.hex"))   # K*C1F*C2F = 2560
+c2b = read_hex_s16(_p("c2b.hex"))   # C2F = 32
+d1w = read_hex_s16(_p("d1w.hex"))   # C2F*D1U = 512
+d1b = read_hex_s16(_p("d1b.hex"))   # D1U = 16
+d2w = read_hex_s16(_p("d2w.hex"))   # D1U*NC = 48
+d2b = read_hex_s16(_p("d2b.hex"))   # NC = 3
 
 # ── Load test vectors ─────────────────────────────────────────────────────────
 words = []
-with open("test_vectors.hex") as f:
+with open(_p("test_vectors.hex")) as f:
     for line in f:
         words.append(int(line.strip(), 16))
 
 labels = []
-with open("test_labels.hex") as f:
+with open(_p("test_labels.txt")) as f:
     for line in f:
-        labels.append(int(line.strip(), 16))
+        labels.append(int(line.strip()))
 
 print("=" * 62)
-print("  NAS Q8.8 Reference (numpy) vs Hardware (Icarus Verilog)")
+print(f"  NAS Q{DW-FRAC}.{FRAC} Reference (numpy) vs Hardware (Icarus Verilog)")
 print("=" * 62)
 print(f"  {'#':>2}  {'Expected':<10}  {'HW result':<10}  Result")
 print(f"  {'-':>2}  {'--------':<10}  {'---------':<10}  ------")
@@ -124,7 +128,7 @@ for s in range(N_SAMPLES):
     gap_acc = np.zeros(C2F, dtype=np.int64)
     for t in range(SEQ):
         gap_acc += c2_mem[t, :]
-    gap_out = (gap_acc >> 9).astype(np.int32)   # /512, keep Q8.8
+    gap_out = (gap_acc >> 9).astype(np.int32)   # /512, preserve fixed-point scaling
 
     # ── Dense1 ───────────────────────────────────────────────────────────────
     d1_acc = np.array([int(d1b[n]) << FRAC for n in range(D1U)], dtype=np.int64)
@@ -153,5 +157,5 @@ for s in range(N_SAMPLES):
           f"scores=[{d2_acc[0]:+10d}, {d2_acc[1]:+10d}, {d2_acc[2]:+10d}]  np_pred={CLASSES[pred_np]}")
 
 print("=" * 62)
-print(f"  Hardware: {pass_hw}/9    Numpy Q8.8: {pass_np}/9")
+print(f"  Hardware: {pass_hw}/9    Numpy Q{DW-FRAC}.{FRAC}: {pass_np}/9")
 print("=" * 62)

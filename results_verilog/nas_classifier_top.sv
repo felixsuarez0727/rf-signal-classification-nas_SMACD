@@ -10,7 +10,7 @@
 
 module nas_classifier_top #(
     parameter int DW    = 16,
-    parameter int FRAC  = 8,
+    parameter int FRAC  = 12,
     parameter int ACC_W = 40,
     parameter int SEQ   = 512,
     parameter int IN_CH = 2,
@@ -36,16 +36,13 @@ module nas_classifier_top #(
     localparam int C2_MAC = K * C1F;     // 80
     localparam int KC1_END = C1_MAC + 1; // 11  (bias + 10 MACs + ELU-write)
     localparam int KC2_END = C2_MAC + 1; // 81
-    localparam int SEXT    = ACC_W - DW;   // 24 – sign-extension bits
 
     // ── States ────────────────────────────────────────────────────────────────
-    localparam [3:0]
-        S_IDLE    = 4'd0, S_RECV    = 4'd1,
-        S_CONV1   = 4'd2, S_CONV2   = 4'd3,
-        S_GAP     = 4'd4, S_GAP_DIV = 4'd5,
-        S_DENSE1  = 4'd6, S_DENSE2  = 4'd7,
-        S_ARGMAX  = 4'd8, S_DONE    = 4'd9;
-    reg [3:0] state;
+    typedef enum logic [3:0] {
+        S_IDLE, S_RECV, S_CONV1, S_CONV2,
+        S_GAP, S_GAP_DIV, S_DENSE1, S_DENSE2, S_ARGMAX, S_DONE
+    } state_t;
+    state_t state;
 
     // ── Weight ROMs ───────────────────────────────────────────────────────────
     // Loaded from *.hex files at elaboration time via $readmemh.
@@ -96,7 +93,7 @@ module nas_classifier_top #(
     assign c1_kc = kc_cnt - 1;
     assign c1_k  = c1_kc[3:1];
     assign c1_ch = c1_kc[0];
-    assign c1_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c1_k}) - $signed(10'd2);
+    assign c1_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c1_k}) - $signed(10'(PAD));
 
     // ── Combinatorial index wires for Conv2 ───────────────────────────────────
     // C1F=16 is a power of 2: k = kc>>4,  ch = kc[3:0]
@@ -108,20 +105,20 @@ module nas_classifier_top #(
     assign c2_kc = kc_cnt - 1;
     assign c2_k  = c2_kc[6:4];
     assign c2_ch = c2_kc[3:0];
-    assign c2_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c2_k}) - $signed(10'd2);
+    assign c2_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c2_k}) - $signed(10'(PAD));
 
     // ── ELU activation function ───────────────────────────────────────────────
     // Input: 40-bit raw accumulator.  Output: Q8.8 16-bit result.
     // x >= 0         ->  x
     // -1.0 <= x < 0  ->  x >> 1   (linear fit of alpha*(e^x-1), alpha=1)
     // x < -1.0       ->  -1.0     (saturate)
-    localparam logic signed [DW-1:0] ELU_MIN = -16'sh0100; // -1.0 in Q8.8
+    localparam logic signed [DW-1:0] ELU_MIN = -16'sh1000; // -1.0 in Q-format
 
     function automatic logic signed [DW-1:0] elu(
         input logic signed [ACC_W-1:0] acc
     );
         logic signed [DW-1:0] x;
-        x = acc[FRAC +: DW];           // extract Q8.8 result (shift right by FRAC)
+        x = acc[FRAC +: DW];           // extract fixed-point result (shift right by FRAC)
         if      (x >= 0)        return x;
         else if (x >= ELU_MIN)  return x >>> 1;
         else                    return ELU_MIN;
@@ -130,7 +127,7 @@ module nas_classifier_top #(
     // ── Main state machine ─────────────────────────────────────────────────────
     integer f, n, kk;
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (!rst_n) begin
             state        <= S_IDLE;
             result_valid <= 1'b0;
@@ -167,7 +164,7 @@ module nas_classifier_top #(
                     case (kc_cnt)
                         0: begin
                             for (f=0; f<C1F; f=f+1)
-                                c1_acc[f] <= {{SEXT{c1b[f][DW-1]}}, c1b[f]} <<< FRAC;
+                                c1_acc[f] <= {{(ACC_W-DW){c1b[f][DW-1]}}, c1b[f]} <<< FRAC;
                             kc_cnt <= kc_cnt + 1;
                         end
                         KC1_END: begin
@@ -183,9 +180,9 @@ module nas_classifier_top #(
                             if (c1_ts >= 0 && c1_ts < SEQ)
                                 for (f=0; f<C1F; f=f+1)
                                     c1_acc[f] <= c1_acc[f]
-                                        + {{SEXT{input_mem[c1_ts][c1_ch][DW-1]}},
+                                        + {{(ACC_W-DW){input_mem[c1_ts][c1_ch][DW-1]},
                                            input_mem[c1_ts][c1_ch]}
-                                        * {{SEXT{c1w[c1_k*IN_CH*C1F + c1_ch*C1F + f][DW-1]}},
+                                        * {{(ACC_W-DW){c1w[c1_k*IN_CH*C1F + c1_ch*C1F + f][DW-1]}},
                                            c1w[c1_k*IN_CH*C1F + c1_ch*C1F + f]};
                             kc_cnt <= kc_cnt + 1;
                         end
@@ -197,7 +194,7 @@ module nas_classifier_top #(
                     case (kc_cnt)
                         0: begin
                             for (f=0; f<C2F; f=f+1)
-                                c2_acc[f] <= {{SEXT{c2b[f][DW-1]}}, c2b[f]} <<< FRAC;
+                                c2_acc[f] <= {{(ACC_W-DW){c2b[f][DW-1]}}, c2b[f]} <<< FRAC;
                             kc_cnt <= kc_cnt + 1;
                         end
                         KC2_END: begin
@@ -214,9 +211,9 @@ module nas_classifier_top #(
                             if (c2_ts >= 0 && c2_ts < SEQ)
                                 for (f=0; f<C2F; f=f+1)
                                     c2_acc[f] <= c2_acc[f]
-                                        + {{SEXT{c1_mem[c2_ts][c2_ch][DW-1]}},
+                                        + {{(ACC_W-DW){c1_mem[c2_ts][c2_ch][DW-1]}},
                                            c1_mem[c2_ts][c2_ch]}
-                                        * {{SEXT{c2w[c2_k*C1F*C2F + c2_ch*C2F + f][DW-1]}},
+                                        * {{(ACC_W-DW){c2w[c2_k*C1F*C2F + c2_ch*C2F + f][DW-1]}},
                                            c2w[c2_k*C1F*C2F + c2_ch*C2F + f]};
                             kc_cnt <= kc_cnt + 1;
                         end
@@ -227,7 +224,7 @@ module nas_classifier_top #(
                 S_GAP: begin
                     for (f=0; f<C2F; f=f+1)
                         gap_acc[f] <= gap_acc[f]
-                                    + {{SEXT{c2_mem[t_cnt][f][DW-1]}},
+                                    + {{(ACC_W-DW){c2_mem[t_cnt][f][DW-1]}},
                                        c2_mem[t_cnt][f]};
                     if (t_cnt == SEQ - 1)
                         state <= S_GAP_DIV;
@@ -238,40 +235,37 @@ module nas_classifier_top #(
                 // Divide by 512 (shift right 9), init Dense1 biases
                 S_GAP_DIV: begin
                     for (f=0; f<C2F; f=f+1)
-                        gap_out[f] <= gap_acc[f][24:9];  // >>9 = /512 (SEQ length), keep Q8.8
+                        gap_out[f] <= DW'(gap_acc[f] >>> 9);
                     for (n=0; n<D1U; n=n+1)
-                        d1_acc[n] <= {{SEXT{d1b[n][DW-1]}}, d1b[n]} <<< FRAC;
+                        d1_acc[n] <= {{(ACC_W-DW){d1b[n][DW-1]}}, d1b[n]} <<< FRAC;
                     state <= S_DENSE1;
                     t_cnt <= '0;
                 end
 
                 // ── Dense1: (32->16, ELU) ─────────────────────────────────
-                // t_cnt=0..C2F-1 : MAC steps; t_cnt=C2F : ELU-write step.
-                // The extra cycle ensures all 32 MACs are committed before
-                // elu() reads d1_acc (non-blocking assignment semantics).
+                // Iterate t_cnt over 32 inputs; all 16 outputs accumulate in parallel.
                 S_DENSE1: begin
-                    if (t_cnt < C2F) begin
-                        for (n=0; n<D1U; n=n+1)
-                            d1_acc[n] <= d1_acc[n]
-                                       + {{SEXT{gap_out[t_cnt][DW-1]}}, gap_out[t_cnt]}
-                                       * {{SEXT{d1w[t_cnt*D1U + n][DW-1]}},
-                                          d1w[t_cnt*D1U + n]};
-                        t_cnt <= t_cnt + 1;
-                    end else begin
+                    for (n=0; n<D1U; n=n+1)
+                        d1_acc[n] <= d1_acc[n]
+                                   + {{(ACC_W-DW){gap_out[t_cnt][DW-1]}}, gap_out[t_cnt]}
+                                   * {{(ACC_W-DW){d1w[t_cnt*D1U + n][DW-1]}},
+                                      d1w[t_cnt*D1U + n]};
+                    if (t_cnt == C2F - 1) begin
                         for (n=0; n<D1U; n=n+1)
                             d1_out[n] <= elu(d1_acc[n]);
                         for (kk=0; kk<NC; kk=kk+1)
-                            d2_acc[kk] <= {{SEXT{d2b[kk][DW-1]}}, d2b[kk]} <<< FRAC;
+                            d2_acc[kk] <= {{(ACC_W-DW){d2b[kk][DW-1]}}, d2b[kk]} <<< FRAC;
                         state <= S_DENSE2;  t_cnt <= '0;
-                    end
+                    end else
+                        t_cnt <= t_cnt + 1;
                 end
 
                 // ── Dense2: (16->3, no activation) ────────────────────────
                 S_DENSE2: begin
                     for (kk=0; kk<NC; kk=kk+1)
                         d2_acc[kk] <= d2_acc[kk]
-                                    + {{SEXT{d1_out[t_cnt][DW-1]}}, d1_out[t_cnt]}
-                                    * {{SEXT{d2w[t_cnt*NC + kk][DW-1]}},
+                                    + {{(ACC_W-DW){d1_out[t_cnt][DW-1]}}, d1_out[t_cnt]}
+                                    * {{(ACC_W-DW){d2w[t_cnt*NC + kk][DW-1]}},
                                        d2w[t_cnt*NC + kk]};
                     if (t_cnt == D1U - 1)
                         state <= S_ARGMAX;

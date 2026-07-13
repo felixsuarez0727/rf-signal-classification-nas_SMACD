@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Extract test vectors from the real dataset and quantize to Q8.8 for simulation.
+Extract test vectors from the real dataset and quantize to Q4.12 for simulation.
 
-Outputs (in verilog_output/):
+Outputs (in results_verilog/):
   test_vectors.hex   – IQ samples: one 32-bit word per sample (real[31:16] | imag[15:0])
   test_labels.txt    – expected class index (0=LTE, 1=DVB-T, 2=WiFi), one per sample
   test_info.txt      – human-readable summary
@@ -14,9 +14,9 @@ import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
 
-OUT_DIR   = "verilog_output"
+OUT_DIR   = "results_verilog"
 DW        = 16
-FRAC      = 8
+FRAC      = 12
 SCALE     = 1 << FRAC
 MAXV      = (1 << (DW - 1)) - 1
 MINV      = -(1 << (DW - 1))
@@ -30,17 +30,30 @@ def quantize(v: float) -> int:
     return int(np.clip(round(float(v) * SCALE), MINV, MAXV))
 
 
-sys.path.insert(0, ".")
-import tensorflow as tf
-from train import load_dataset, CLASSES as TRAIN_CLASSES
+import glob
+
+PREFIXES = ["lte", "dvbt", "wf"]
+
+def read_iq_file(path):
+    data = np.fromfile(path, dtype=np.float32)
+    return data[0::2] + 1j * data[1::2]
+
+def normalize_iq(iq):
+    return (iq - np.mean(iq)) / (np.std(iq) + 1e-8)
 
 print("Loading test dataset...")
-X_test, y_test = load_dataset(os.path.join("split_dataset", "test"), chunk_samples=1024)
-y_labels = np.argmax(y_test, axis=1)
+TEST_DIR = os.path.join("split_dataset", "test")
+X_all, y_all = [], []
+for cls_idx, (cls_name, prefix) in enumerate(zip(CLASSES, PREFIXES)):
+    for fpath in sorted(glob.glob(os.path.join(TEST_DIR, f"{prefix}*.bin"))):
+        iq = normalize_iq(read_iq_file(fpath))
+        for i in range(len(iq) // 1024):
+            chunk = iq[i*1024 : i*1024 + 1024][::2]   # decimate 1024→512
+            X_all.append(np.stack([chunk.real, chunk.imag], axis=1).astype(np.float32))
+            y_all.append(cls_idx)
 
-# Decimate 1024→512 (same as training preprocessing)
-step = 1024 // SEQ
-X_test = X_test[:, ::step, :]
+X_test = np.array(X_all)    # (N, 512, 2)
+y_labels = np.array(y_all)  # (N,)
 
 # Pick 3 samples per class
 rng = np.random.default_rng(42)
@@ -80,7 +93,7 @@ info_path = os.path.join(OUT_DIR, "test_info.txt")
 with open(info_path, "w") as f:
     f.write(f"Test vectors: {N_SAMPLES} samples ({N_SAMPLES//len(CLASSES)} per class)\n")
     f.write(f"Sequence length: {SEQ} IQ samples per inference\n")
-    f.write(f"Fixed-point: Q8.8 (signed {DW}-bit, {FRAC} fractional bits)\n\n")
+    f.write(f"Fixed-point: Q{DW-FRAC}.{FRAC} (signed {DW}-bit, {FRAC} fractional bits)\n\n")
     f.write("Index | Class  | Label\n")
     f.write("------+--------+------\n")
     for i, y in enumerate(selected_y):

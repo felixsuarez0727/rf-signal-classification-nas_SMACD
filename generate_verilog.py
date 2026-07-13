@@ -20,10 +20,10 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 MODEL_PATH = "results_nas_v2_paper_pruning/nas_paper_model_pruned_55pct_1571weights.keras"
-OUT_DIR    = "verilog_output"
+OUT_DIR    = "results_verilog"
 
 DW    = 16
-FRAC  = 8
+FRAC  = 12          # Q4.12 — 4 integer bits, 12 fractional bits (resolution ≈ 0.000244)
 SCALE = 1 << FRAC
 MAXV  = (1 << (DW - 1)) - 1
 MINV  = -(1 << (DW - 1))
@@ -60,22 +60,36 @@ def write_hex(fname, flat, width=DW):
             f.write(f"{int(v) & mask:0{nibbles}X}\n")
 
 
-# ── load & process model ──────────────────────────────────────────────────────
-print("Loading model...")
-try:
-    import tensorflow as tf
-except ImportError:
-    sys.exit("TensorFlow not found. Activate the venv: source venv/bin/activate")
+# ── load & process model (via h5py — no TensorFlow needed) ────────────────────
+import zipfile, h5py, tempfile
+print("Loading model weights via h5py...")
 
-model = tf.keras.models.load_model(MODEL_PATH)
-L = model.layers
+with zipfile.ZipFile(MODEL_PATH) as z:
+    wdata = z.read("model.weights.h5")
+_tmp = tempfile.NamedTemporaryFile(suffix=".h5", delete=False)
+_tmp.write(wdata); _tmp.close()
 
-conv1_W, conv1_b              = L[0].get_weights()
-bn1_g,   bn1_b, bn1_m, bn1_v = L[1].get_weights()
-conv2_W, conv2_b              = L[3].get_weights()
-bn2_g,   bn2_b, bn2_m, bn2_v = L[4].get_weights()
-d1_W,    d1_b                = L[7].get_weights()
-d2_W,    d2_b                = L[9].get_weights()
+with h5py.File(_tmp.name) as h:
+    def _w(path): return np.array(h[path])
+    # Keras saves BN vars as [gamma, beta, moving_mean, moving_variance]
+    conv1_W = _w("layers/conv1d/vars/0")        # (5, 2, 16)
+    conv1_b = _w("layers/conv1d/vars/1")        # (16,)
+    bn1_g   = _w("layers/batch_normalization/vars/0")
+    bn1_b   = _w("layers/batch_normalization/vars/1")
+    bn1_m   = _w("layers/batch_normalization/vars/2")
+    bn1_v   = _w("layers/batch_normalization/vars/3")
+    conv2_W = _w("layers/conv1d_1/vars/0")      # (5, 16, 32)
+    conv2_b = _w("layers/conv1d_1/vars/1")      # (32,)
+    bn2_g   = _w("layers/batch_normalization_1/vars/0")
+    bn2_b   = _w("layers/batch_normalization_1/vars/1")
+    bn2_m   = _w("layers/batch_normalization_1/vars/2")
+    bn2_v   = _w("layers/batch_normalization_1/vars/3")
+    d1_W    = _w("layers/dense/vars/0")         # (32, 16)
+    d1_b    = _w("layers/dense/vars/1")         # (16,)
+    d2_W    = _w("layers/dense_1/vars/0")       # (16, 3)
+    d2_b    = _w("layers/dense_1/vars/1")       # (3,)
+
+os.unlink(_tmp.name)
 
 conv1_W, conv1_b = fold_bn(conv1_W, conv1_b, bn1_g, bn1_b, bn1_m, bn1_v)
 conv2_W, conv2_b = fold_bn(conv2_W, conv2_b, bn2_g, bn2_b, bn2_m, bn2_v)
@@ -89,7 +103,7 @@ D1B = quantize_arr(d1_b)      # (16,)
 D2W = quantize_arr(d2_W)      # (16, 3)
 D2B = quantize_arr(d2_b)      # (3,)
 
-print("Weight ranges (raw Q8.8 integers):")
+print(f"Weight ranges (raw Q{DW-FRAC}.{FRAC} integers):")
 for n, a in [("C1W",C1W),("C1B",C1B),("C2W",C2W),("C2B",C2B),
              ("D1W",D1W),("D1B",D1B),("D2W",D2W),("D2B",D2B)]:
     print(f"  {n:4s}: [{a.min():6d}, {a.max():6d}]  "
@@ -244,13 +258,13 @@ module nas_classifier_top #(
     // x >= 0         ->  x
     // -1.0 <= x < 0  ->  x >> 1   (linear fit of alpha*(e^x-1), alpha=1)
     // x < -1.0       ->  -1.0     (saturate)
-    localparam logic signed [DW-1:0] ELU_MIN = -16'sh0100; // -1.0 in Q8.8
+    localparam logic signed [DW-1:0] ELU_MIN = __ELU_MIN__; // -1.0 in Q-format
 
     function automatic logic signed [DW-1:0] elu(
         input logic signed [ACC_W-1:0] acc
     );
         logic signed [DW-1:0] x;
-        x = acc[FRAC +: DW];           // extract Q8.8 result (shift right by FRAC)
+        x = acc[FRAC +: DW];           // extract fixed-point result (shift right by FRAC)
         if      (x >= 0)        return x;
         else if (x >= ELU_MIN)  return x >>> 1;
         else                    return ELU_MIN;
@@ -431,17 +445,21 @@ endmodule
 """
 
 # Substitute Python parameters into the template
+elu_min_raw = -(1 << FRAC)  # -1.0 in the chosen Q-format
+elu_min_hex = f"-{DW}'sh{(-elu_min_raw):04X}"  # e.g. -16'sh1000 for Q4.12
+
 sv = (sv
-    .replace("__DW__",    str(DW))
-    .replace("__FRAC__",  str(FRAC))
-    .replace("__ACC_W__", str(ACC_W))
-    .replace("__SEQ__",   str(SEQ))
-    .replace("__IN_CH__", str(IN_CH))
-    .replace("__K__",     str(K))
-    .replace("__C1F__",   str(C1F))
-    .replace("__C2F__",   str(C2F))
-    .replace("__D1U__",   str(D1U))
-    .replace("__NC__",    str(NC))
+    .replace("__DW__",      str(DW))
+    .replace("__FRAC__",    str(FRAC))
+    .replace("__ACC_W__",   str(ACC_W))
+    .replace("__SEQ__",     str(SEQ))
+    .replace("__IN_CH__",   str(IN_CH))
+    .replace("__K__",       str(K))
+    .replace("__C1F__",     str(C1F))
+    .replace("__C2F__",     str(C2F))
+    .replace("__D1U__",     str(D1U))
+    .replace("__NC__",      str(NC))
+    .replace("__ELU_MIN__", elu_min_hex)
 )
 
 

@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Full test-set evaluation of the Q8.8 hardware model.
+Full test-set evaluation of the fixed-point hardware model.
 Loads all .bin files from split_dataset/test/, runs the same
-Q8.8 arithmetic as nas_classifier_top.sv, and reports accuracy.
+fixed-point arithmetic as nas_classifier_top.sv, and reports accuracy.
 No TensorFlow required.
 """
 
 import os, sys, glob, numpy as np
 
-BASE   = os.path.join(os.path.dirname(__file__), "..")
+BASE   = os.path.dirname(os.path.abspath(__file__))
 TEST   = os.path.join(BASE, "split_dataset", "test")
 CLASSES   = ["LTE", "DVB-T", "WiFi"]
 PREFIXES  = ["lte", "dvbt", "wf"]
 
-DW   = 16;  FRAC = 8;  SCALE = 1 << FRAC
+DW   = 16;  FRAC = 12;  SCALE = 1 << FRAC
 SEQ  = 512; K = 5;     PAD   = K // 2
 IN_CH = 2;  C1F = 16;  C2F = 32;  D1U = 16;  NC = 3
 
@@ -40,7 +40,7 @@ def quantize(v):
     return int(np.clip(round(float(v) * SCALE), -(1<<(DW-1)), (1<<(DW-1))-1))
 
 # ── load weights ─────────────────────────────────────────────────────────────
-WD = os.path.dirname(__file__)
+WD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_verilog")
 c1w = read_hex_s16(f"{WD}/c1w.hex")
 c1b = read_hex_s16(f"{WD}/c1b.hex")
 c2w = read_hex_s16(f"{WD}/c2w.hex")
@@ -108,7 +108,7 @@ correct = {c: 0 for c in CLASSES}
 total   = {c: 0 for c in CLASSES}
 n_total = 0
 
-print("Evaluating Q8.8 hardware model on full test set...")
+print(f"Evaluating Q{DW-FRAC}.{FRAC} hardware model on full test set...")
 print("(This may take a few minutes — pure Python loops)\n")
 
 for cls_idx, (cls_name, prefix) in enumerate(zip(CLASSES, PREFIXES)):
@@ -136,5 +136,5 @@ for cls_name in CLASSES:
     acc = correct[cls_name] / total[cls_name] * 100 if total[cls_name] > 0 else 0
     print(f"    {cls_name:<8}: {correct[cls_name]:>5}/{total[cls_name]:<5}  ({acc:.1f}%)")
 overall = sum(correct.values()) / n_total * 100
-print(f"\n  Overall Q8.8 hardware accuracy: {sum(correct.values())}/{n_total} = {overall:.1f}%")
+print(f"\n  Overall Q{DW-FRAC}.{FRAC} hardware accuracy: {sum(correct.values())}/{n_total} = {overall:.1f}%")
 print("="*50)

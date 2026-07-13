@@ -1,6 +1,6 @@
 Test vectors: 9 samples (3 per class)
 Sequence length: 512 IQ samples per inference
-Fixed-point: Q8.8 (signed 16-bit, 8 fractional bits)
+Fixed-point: Q4.12 (signed 16-bit, 12 fractional bits)
 
 Index | Class  | Label
 ------+--------+------
