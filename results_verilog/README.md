@@ -22,7 +22,16 @@ Accumulator width: 40-bit signed (prevents overflow across MAC chains).
 
 ## Accuracy Results
 
-### Q4.12 (current)
+### Q4.12 + QAT (current)
+
+| Class  | Correct / Total     | Accuracy |
+|--------|---------------------|----------|
+| LTE    | 10,772 / 12,888     | 83.6%    |
+| DVB-T  | 10,571 / 11,814     | 89.5%    |
+| WiFi   | 8,118 / 9,666       | 84.0%    |
+| **Overall** | **29,461 / 34,368** | **85.7%** |
+
+### Q4.12 (no QAT)
 
 | Class  | Correct / Total     | Accuracy |
 |--------|---------------------|----------|
@@ -31,7 +40,7 @@ Accumulator width: 40-bit signed (prevents overflow across MAC chains).
 | WiFi   | 9,488 / 9,666       | 98.2%    |
 | **Overall** | **15,380 / 34,368** | **44.8%** |
 
-### Q8.8 (previous)
+### Q8.8 (baseline)
 
 | Class  | Correct / Total     | Accuracy |
 |--------|---------------------|----------|
@@ -42,7 +51,7 @@ Accumulator width: 40-bit signed (prevents overflow across MAC chains).
 
 Float32 reference accuracy: **89.8%**
 
-Going from Q8.8 to Q4.12 recovered 13.8 pp overall (+60% relative), with DVB-T jumping from near-zero (0.1%) to 36.0%. The remaining gap versus float32 is primarily in LTE; further improvement would require quantization-aware training (QAT) or a wider integer representation.
+QAT (Quantization-Aware Training) with PyTorch and fake-quantization (Straight-Through Estimator) over 10 epochs brought the hardware model to **85.7%**, just 4.1 pp below the float32 reference.
 
 ---
 
@@ -108,5 +117,6 @@ vvp sim
 |--------|-------------|
 | `generate_verilog.py` | Loads pruned model, folds BatchNorm, quantizes to Q4.12, generates `.sv` and `.hex` files |
 | `generate_test_vectors.py` | Extracts test samples from dataset, exports to Q4.12 hex format |
+| `qat_train.py` | QAT in PyTorch with fake-quantization Q4.12; exports trained weights to `.hex` |
 | `eval_q88_full.py` | Evaluates fixed-point accuracy on the full test set (pure numpy, no TensorFlow) |
 | `sim_q88.py` | Verifies 9-sample numpy reference against Icarus Verilog hardware output |
