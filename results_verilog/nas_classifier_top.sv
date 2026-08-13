@@ -9,16 +9,16 @@
 `timescale 1ns / 1ps
 
 module nas_classifier_top #(
-    parameter int DW    = 16,
-    parameter int FRAC  = 12,
-    parameter int ACC_W = 40,
-    parameter int SEQ   = 512,
-    parameter int IN_CH = 2,
-    parameter int K     = 5,
-    parameter int C1F   = 16,
-    parameter int C2F   = 32,
-    parameter int D1U   = 16,
-    parameter int NC    = 3
+    parameter DW    = 16,
+    parameter FRAC  = 12,
+    parameter ACC_W = 40,
+    parameter SEQ   = 512,
+    parameter IN_CH = 2,
+    parameter K     = 5,
+    parameter C1F   = 16,
+    parameter C2F   = 32,
+    parameter D1U   = 16,
+    parameter NC    = 3
 ) (
     input  logic              clk,
     input  logic              rst_n,
@@ -31,18 +31,18 @@ module nas_classifier_top #(
 );
 
     // ── Local parameters ──────────────────────────────────────────────────────
-    localparam int PAD    = K / 2;       // 2
-    localparam int C1_MAC = K * IN_CH;   // 10
-    localparam int C2_MAC = K * C1F;     // 80
-    localparam int KC1_END = C1_MAC + 1; // 11  (bias + 10 MACs + ELU-write)
-    localparam int KC2_END = C2_MAC + 1; // 81
+    localparam PAD    = K / 2;       // 2
+    localparam C1_MAC = K * IN_CH;   // 10
+    localparam C2_MAC = K * C1F;     // 80
+    localparam KC1_END = C1_MAC + 1; // 11  (bias + 10 MACs + ELU-write)
+    localparam KC2_END = C2_MAC + 1; // 81
 
     // ── States ────────────────────────────────────────────────────────────────
-    typedef enum logic [3:0] {
-        S_IDLE, S_RECV, S_CONV1, S_CONV2,
-        S_GAP, S_GAP_DIV, S_DENSE1, S_DENSE2, S_ARGMAX, S_DONE
-    } state_t;
-    state_t state;
+    localparam [3:0]
+        S_IDLE=4'd0, S_RECV=4'd1, S_CONV1=4'd2, S_CONV2=4'd3,
+        S_GAP=4'd4, S_GAP_DIV=4'd5, S_DENSE1=4'd6, S_DENSE2=4'd7,
+        S_ARGMAX=4'd8, S_DONE=4'd9;
+    reg [3:0] state;
 
     // ── Weight ROMs ───────────────────────────────────────────────────────────
     // Loaded from *.hex files at elaboration time via $readmemh.
@@ -93,7 +93,7 @@ module nas_classifier_top #(
     assign c1_kc = kc_cnt - 1;
     assign c1_k  = c1_kc[3:1];
     assign c1_ch = c1_kc[0];
-    assign c1_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c1_k}) - $signed(10'(PAD));
+    assign c1_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c1_k}) - $signed(10'd2);
 
     // ── Combinatorial index wires for Conv2 ───────────────────────────────────
     // C1F=16 is a power of 2: k = kc>>4,  ch = kc[3:0]
@@ -105,7 +105,7 @@ module nas_classifier_top #(
     assign c2_kc = kc_cnt - 1;
     assign c2_k  = c2_kc[6:4];
     assign c2_ch = c2_kc[3:0];
-    assign c2_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c2_k}) - $signed(10'(PAD));
+    assign c2_ts = $signed({1'b0, t_cnt}) + $signed({7'b0, c2_k}) - $signed(10'd2);
 
     // ── ELU activation function ───────────────────────────────────────────────
     // Input: 40-bit raw accumulator.  Output: Q8.8 16-bit result.
@@ -118,16 +118,16 @@ module nas_classifier_top #(
         input logic signed [ACC_W-1:0] acc
     );
         logic signed [DW-1:0] x;
-        x = acc[FRAC +: DW];           // extract fixed-point result (shift right by FRAC)
-        if      (x >= 0)        return x;
-        else if (x >= ELU_MIN)  return x >>> 1;
-        else                    return ELU_MIN;
+        x = acc[FRAC +: DW];
+        if      (x >= 0)        elu = x;
+        else if (x >= ELU_MIN)  elu = x >>> 1;
+        else                    elu = ELU_MIN;
     endfunction
 
     // ── Main state machine ─────────────────────────────────────────────────────
     integer f, n, kk;
 
-    always_ff @(posedge clk) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             state        <= S_IDLE;
             result_valid <= 1'b0;
@@ -180,7 +180,7 @@ module nas_classifier_top #(
                             if (c1_ts >= 0 && c1_ts < SEQ)
                                 for (f=0; f<C1F; f=f+1)
                                     c1_acc[f] <= c1_acc[f]
-                                        + {{(ACC_W-DW){input_mem[c1_ts][c1_ch][DW-1]},
+                                        + {{(ACC_W-DW){input_mem[c1_ts][c1_ch][DW-1]}},
                                            input_mem[c1_ts][c1_ch]}
                                         * {{(ACC_W-DW){c1w[c1_k*IN_CH*C1F + c1_ch*C1F + f][DW-1]}},
                                            c1w[c1_k*IN_CH*C1F + c1_ch*C1F + f]};
@@ -235,7 +235,7 @@ module nas_classifier_top #(
                 // Divide by 512 (shift right 9), init Dense1 biases
                 S_GAP_DIV: begin
                     for (f=0; f<C2F; f=f+1)
-                        gap_out[f] <= DW'(gap_acc[f] >>> 9);
+                        gap_out[f] <= gap_acc[f][FRAC+9 +: DW];
                     for (n=0; n<D1U; n=n+1)
                         d1_acc[n] <= {{(ACC_W-DW){d1b[n][DW-1]}}, d1b[n]} <<< FRAC;
                     state <= S_DENSE1;

@@ -1,0 +1,5 @@
+read_verilog -sv nas_classifier_top.sv
+hierarchy -top nas_classifier_top
+synth -top nas_classifier_top
+stat
+write_verilog -noattr synth_output.v

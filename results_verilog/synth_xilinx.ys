@@ -1,0 +1,5 @@
+read_verilog -sv nas_classifier_top.sv
+hierarchy -top nas_classifier_top
+synth_xilinx -top nas_classifier_top -flatten
+stat
+write_verilog -noattr synth_xilinx_output.v
