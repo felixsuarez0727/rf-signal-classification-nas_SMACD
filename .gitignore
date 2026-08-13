@@ -19,5 +19,3 @@ __pycache__/
 
 # Paper / dataset (keep out of GitHub)
 SMACD.tex
-results_verilog/synth_output.v
-results_verilog/synth_xilinx_output.v

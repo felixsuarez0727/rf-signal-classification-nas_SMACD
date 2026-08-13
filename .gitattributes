@@ -1,0 +1,2 @@
+results_verilog/synth_xilinx_output.v filter=lfs diff=lfs merge=lfs -text
+results_verilog/synth_output.v filter=lfs diff=lfs merge=lfs -text
